@@ -47,9 +47,6 @@
     <ClCompile Include="m08adr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="m08ext.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="m08mch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -60,6 +57,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\asxxsrc\strcmpi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\asxxsrc\asmcro.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

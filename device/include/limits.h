@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -33,7 +33,7 @@
 #define SCHAR_MAX   127
 #define SCHAR_MIN  -128
 #define UCHAR_MAX   0xff
-#ifdef SDCC_CHAR_UNSIGNED
+#ifdef __SDCC_CHAR_UNSIGNED
 #define CHAR_MAX    UCHAR_MAX
 #define CHAR_MIN    0
 #else
@@ -49,13 +49,13 @@
 #define UINT_MIN    0
 #define USHRT_MAX   UINT_MAX
 #define USHRT_MIN   UINT_MIN
-#define LONG_MIN   -2147483648
-#define LONG_MAX    2147483647
+#define LONG_MIN    (-2147483647L-1)
+#define LONG_MAX    2147483647L
 #define ULONG_MAX   0xffffffff
 #define ULONG_MIN   0
-#define LLONG_MIN  -9223372036854775808
-#define LLONG_MAX   9223372036854775807
-#define ULLONG_MAX  18446744073709551615
+#define LLONG_MIN   (-9223372036854775807LL-1)
+#define LLONG_MAX   9223372036854775807LL
+#define ULLONG_MAX  18446744073709551615ULL
 
 #endif
 

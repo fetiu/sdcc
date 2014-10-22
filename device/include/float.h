@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -76,7 +76,7 @@ char __fseq (float, float);
 char __fsgt (float, float);
 
 
-#if defined(SDCC_FLOAT_LIB) && defined(SDCC_mcs51) && !defined(SDCC_USE_XSTACK) && !defined(_SDCC_NO_ASM_LIB_FUNCS)
+#if defined(__SDCC_FLOAT_LIB) && defined(__SDCC_mcs51) && !defined(__SDCC_USE_XSTACK) && !defined(_SDCC_NO_ASM_LIB_FUNCS)
 
 #define FLOAT_ASM_MCS51
 

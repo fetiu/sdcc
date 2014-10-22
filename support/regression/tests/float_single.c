@@ -25,9 +25,13 @@
 #define TOLERANCE (1e-5)
 
 /* now exceptions for targets/functions which would not pass */
-#if defined(SDCC_hc08)
+#if defined(__SDCC_hc08) || defined(__SDCC_s08)
 #   define EXPF_DISABLED  (1)
-#   define TANF_DISABLED  (1)
+#endif
+
+#if defined(__SDCC_pic16)
+#   define FLOORF_DISABLED  (1)
+#   define NEG_DISABLED  (1)
 #endif
 
 static float

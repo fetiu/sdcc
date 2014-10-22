@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -13,7 +13,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -31,25 +31,20 @@
 
 /* Version 1.0 - Initial release */
 
-#define SDCC_MATH_LIB
+#define __SDCC_MATH_LIB
 #include <math.h>
 #include <errno.h>
 #include <stdbool.h>
 
-#ifndef BOOL
-#define BOOL _Bool
-#endif
-
 #ifdef MATH_ASM_MCS51
 
-#define SDCC_FLOAT_LIB
+#define __SDCC_FLOAT_LIB
 #include <float.h>
 
 // TODO: share with other temps
 static __bit sign_bit;
 static __data unsigned char expf_y[4];
 static __data unsigned char n;
-
 
 float expf(float x)
 {
@@ -332,11 +327,11 @@ fs_lshift_done:
 #define EXPEPS  1.0E-7       /* exp(1.0E-7)=0.0000001 */
 #define K1      1.4426950409 /* 1/ln(2) */
 
-float expf(const float x)
+float expf(float x) _FLOAT_FUNC_REENTRANT
 {
     int n;
     float xn, g, r, z, y;
-	BOOL sign;
+    bool sign;
 
     if(x>=0.0)
         { y=x;  sign=0; }
@@ -379,4 +374,3 @@ float expf(const float x)
 }
 
 #endif
-

@@ -3,15 +3,14 @@
 #ifndef SDCCCONF_HEADER
 #define SDCCCONF_HEADER
 
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
+
 /* XXX */
 #undef BIN2DATA_DIR
 
 /* XXX */
 #undef BINDIR
-
-/* Define to 1 if your processor stores words with the most significant byte
-   first (like Motorola and SPARC, unlike Intel and VAX). */
-#undef BUILD_WORDS_BIGENDIAN
 
 /* XXX */
 #undef DATADIR
@@ -104,7 +103,7 @@
 /* XXX */
 #undef NON_FREE_LIB_DIR_SUFFIX
 
-/* XXX */
+/* Define to 1 to disable the AVR port */
 #undef OPT_DISABLE_AVR
 
 /* XXX */
@@ -126,6 +125,9 @@
 #undef OPT_DISABLE_MCS51
 
 /* XXX */
+#undef OPT_DISABLE_NON_FREE
+
+/* XXX */
 #undef OPT_DISABLE_PACKIHX
 
 /* XXX */
@@ -138,18 +140,33 @@
 #undef OPT_DISABLE_R2K
 
 /* XXX */
+#undef OPT_DISABLE_R3KA
+
+/* XXX */
+#undef OPT_DISABLE_S08
+
+/* XXX */
+#undef OPT_DISABLE_SDBINUTILS
+
+/* XXX */
 #undef OPT_DISABLE_SDCDB
 
 /* XXX */
 #undef OPT_DISABLE_SDCPP
 
 /* XXX */
+#undef OPT_DISABLE_STM8
+
+/* XXX */
 #undef OPT_DISABLE_TININative
+
+/* XXX */
+#undef OPT_DISABLE_TLCS90
 
 /* XXX */
 #undef OPT_DISABLE_UCSIM
 
-/* XXX */
+/* Define to 1 to disable the XA51 port */
 #undef OPT_DISABLE_XA51
 
 /* XXX */
@@ -224,6 +241,9 @@
 /* The size of `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
+/* The size of `long long', as computed by sizeof. */
+#undef SIZEOF_LONG_LONG
+
 /* The size of `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
 
@@ -249,13 +269,13 @@
 #undef STD_LONG_LIB
 
 /* XXX */
-#undef STD_XA51_LIB
-
-/* XXX */
 #undef TYPE_BYTE
 
 /* XXX */
 #undef TYPE_DWORD
+
+/* XXX */
+#undef TYPE_QWORD
 
 /* XXX */
 #undef TYPE_UBYTE
@@ -264,15 +284,32 @@
 #undef TYPE_UDWORD
 
 /* XXX */
+#undef TYPE_UQWORD
+
+/* XXX */
 #undef TYPE_UWORD
 
 /* XXX */
 #undef TYPE_WORD
+
+/* Define to 1 if c supports tags in unnamed struct. */
+#undef UNNAMED_STRUCT_TAG
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
 
 /* Define to 1 if type `char' is unsigned and you are not using gcc.  */
 #ifndef __CHAR_UNSIGNED__
 # undef __CHAR_UNSIGNED__
 #endif
 
-#include "custom.h"
 #endif /* SDCCCONF_HEADER */

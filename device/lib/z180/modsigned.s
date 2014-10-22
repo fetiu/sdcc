@@ -5,7 +5,7 @@
 ;
 ;  This library is free software; you can redistribute it and/or modify it
 ;  under the terms of the GNU General Public License as published by the
-;  Free Software Foundation; either version 2.1, or (at your option) any
+;  Free Software Foundation; either version 2, or (at your option) any
 ;  later version.
 ;
 ;  This library is distributed in the hope that it will be useful,
@@ -26,9 +26,12 @@
 ;   might be covered by the GNU General Public License.
 ;--------------------------------------------------------------------------
 
-        .area   _CODE
+.area   _CODE
 
-__modschar_rrx_s::
+.globl	__modschar
+.globl	__modsint
+
+__modschar:
         ld      hl,#2+1
         add     hl,sp
 
@@ -36,13 +39,11 @@ __modschar_rrx_s::
         dec     hl
         ld      l,(hl)
 
-        ;; Fall through
-__modschar_rrx_hds::
         call    __div8
 
         jp	__get_remainder
 
-__modsint_rrx_s::
+__modsint:
         pop     af
         pop     hl
         pop     de
@@ -50,8 +51,6 @@ __modsint_rrx_s::
         push    hl
         push    af
 
-        ;; Fall through
-__modsint_rrx_hds::
         call    __div16
 
         jp	__get_remainder

@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -62,24 +62,20 @@ usart_open (unsigned char config, sdcc_spbrg_t spbrg) __wparam
     RCSTAbits.SREN = 1;
 
   if (config & 0x10)
-    TXSTAbits.BRGH = 1;
+    {
+      TXSTAbits.BRGH = 1;
+#if !__SDCC_NO_SPBRGH
+      BAUDCONbits.BRG16 = 1;
+    }
   else
-    TXSTAbits.BRGH = 0;
+    {
+      BAUDCONbits.BRG16 = 0;
+#endif  /* !__SDCC_NO_SPBRGH */
+    }
 
   /* TX interrupts */
-#if defined(pic18f66j60) || defined(pic18f66j65) || \
-  defined(pic18f67j60) || defined(pic18f86j60) || \
-  defined(pic18f86j65) || defined(pic18f87j60) || \
-  defined(pic18f96j60) || defined(pic18f96j65) || \
-  defined(pic18f97j60)
-
-  PIR1bits.TXIF_PIR1 = 0;
-
-#else   /* all other devices */
 
   PIR1bits.TXIF = 0;
-
-#endif
 
   if (config & 0x40)
     PIE1bits.RCIE = 1;
@@ -89,25 +85,10 @@ usart_open (unsigned char config, sdcc_spbrg_t spbrg) __wparam
   /* RX interrupts */
   PIR1bits.RCIF = 0;
 
-#if defined(pic18f66j60) || defined(pic18f66j65) || \
-  defined(pic18f67j60) || defined(pic18f86j60) || \
-  defined(pic18f86j65) || defined(pic18f87j60) || \
-  defined(pic18f96j60) || defined(pic18f96j65) || \
-  defined(pic18f97j60)
-
-  if (config & 0x80)
-    PIE1bits.TXIE_PIE1 = 1;
-  else
-    PIE1bits.TXIE_PIE1 = 0;
-
-#else   /* all other devices */
-
   if (config & 0x80)
     PIE1bits.TXIE = 1;
   else
     PIE1bits.TXIE = 0;
-
-#endif
 
 #if !__SDCC_NO_SPBRGH
   SPBRGH = (spbrg >> 8);
@@ -122,6 +103,10 @@ usart_open (unsigned char config, sdcc_spbrg_t spbrg) __wparam
   /* Configure RX/TX pins as inputs. */
   TRISBbits.TRISB1 = 1;
   TRISBbits.TRISB4 = 1;
+#elif (__SDCC_USART_STYLE == 1812300)
+  /* Configure RX/TX pins as inputs. */
+  TRISAbits.TRISA2 = 1;
+  TRISAbits.TRISA3 = 1;
 #elif (__SDCC_USART_STYLE == 1813502)
   /* Configure RX pin as digital pin. */
   ANSELHbits.ANS11 = 0;
@@ -133,7 +118,8 @@ usart_open (unsigned char config, sdcc_spbrg_t spbrg) __wparam
   /* Configure RX/TX pins. */
   TRISCbits.TRISC6 = 0;
   TRISCbits.TRISC7 = 1;
-#elif (__SDCC_USART_STYLE == 1822210)
+#elif (__SDCC_USART_STYLE == 1822210) \
+   || (__SDCC_USART_STYLE == 1865850)
   /* Configure RX/TX pins. */
   TRISCbits.TRISC6 = 1;
   TRISCbits.TRISC7 = 1;

@@ -92,7 +92,7 @@ int summary(struct area * areap)
     };
 
     _Mem IRam6808 =  {0xff,   0,     0, "INDIRECT RAM",           0x0080};
-    _Mem Stack6808 = {0xff,   0,     1, "STACK",                          0x0000};
+    _Mem Stack6808 = {0xff,   0,     1, "STACK",                  0x0000};
     _Mem XRam6808 =  {0xffff, 0, 65536, "EXTERNAL RAM",           0x0100};
     _Mem Rom6808 =   {0xffff, 0, 65536, "ROM/EPROM/FLASH",        0x0200};
 
@@ -105,17 +105,17 @@ int summary(struct area * areap)
 
     if (TARGET_IS_8051) {
         Ram = Ram8051;
-	memcpy(&IRam, &IRam8051, sizeof (_Mem));
-	memcpy(&Stack, &Stack8051, sizeof (_Mem));
-	memcpy(&XRam, &XRam8051, sizeof (_Mem));
-	memcpy(&Rom, &Rom8051, sizeof (_Mem));
+        memcpy(&IRam, &IRam8051, sizeof (_Mem));
+        memcpy(&Stack, &Stack8051, sizeof (_Mem));
+        memcpy(&XRam, &XRam8051, sizeof (_Mem));
+        memcpy(&Rom, &Rom8051, sizeof (_Mem));
     }
     else {
         Ram = Ram6808;
-	memcpy(&IRam, &IRam6808, sizeof (_Mem));
-	memcpy(&Stack, &Stack6808, sizeof (_Mem));
-	memcpy(&XRam, &XRam6808, sizeof (_Mem));
-	memcpy(&Rom, &Rom6808, sizeof (_Mem));
+        memcpy(&IRam, &IRam6808, sizeof (_Mem));
+        memcpy(&Stack, &Stack6808, sizeof (_Mem));
+        memcpy(&XRam, &XRam6808, sizeof (_Mem));
+        memcpy(&Rom, &Rom6808, sizeof (_Mem));
     }
 
     if (stacksize == 0) stacksize = MIN_STACK;
@@ -614,8 +614,8 @@ int summary2(struct area * areap)
 
     /*Report the position of the begining of the stack*/
     if(Stack_Start!=256)
-        fprintf(of, "\n%stack starts at: 0x%02lx (sp set to 0x%02lx) with %ld bytes available.",
-            rflag ? "16 bit mode initial s" : "S", Stack_Start, Stack_Start-1, Stack_Size);
+        fprintf(of, "\n%s starts at: 0x%02lx (sp set to 0x%02lx) with %ld bytes available.",
+            rflag ? "16 bit mode initial stack" : "Stack", Stack_Start, Stack_Start-1, Stack_Size);
     else
         fprintf(of, "\nI don't have a clue where the stack ended up! Sorry...");
 

@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -116,7 +116,7 @@ void name(void) __naked __interrupt      \
  * To be used together with DEF_INTHIGH and DEF_INTLOW.
  */
 #define DEF_HANDLER(sig, handler)               \
-    __asm btfsc sig __endasm;                   \
+    __asm btfsc sig, 0 __endasm;                \
     __asm goto  _ ## handler __endasm;
 
 /* Declare handler to be the handler function for the given signal.
@@ -127,9 +127,9 @@ void name(void) __naked __interrupt      \
  * To be used together with DEF_INTHIGH and DEF_INTLOW.
  */
 #define DEF_HANDLER2(sig1,sig2,handler)         \
-    __asm btfss sig1 __endasm;                  \
+    __asm btfss sig1, 0 __endasm;               \
     __asm bra   $+8 __endasm;                   \
-    __asm btfsc sig2 __endasm;                  \
+    __asm btfsc sig2, 0 __endasm;               \
     __asm goto  _ ## handler __endasm;
 
 /* Declare or define an interrupt handler function. */

@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -13,7 +13,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -26,18 +26,14 @@
    might be covered by the GNU General Public License.
 -------------------------------------------------------------------------*/
 
-#include "string.h"
+#include <string.h>
+
+#undef strchr /* Avoid conflict with builtin strchr() in Z80 and some related ports */
 
 #ifdef __SDCC_BROKEN_STRING_FUNCTIONS
-char * strchr (
-	const char * string,
-	char ch
-	)
+char * strchr ( const char * string, char ch )
 #else
-char * strchr (
-	const char * string,
-	int ch
-	)
+char * strchr ( const char * string, int ch )
 #endif
 {
 	while (*string && *string != ch)
@@ -47,4 +43,3 @@ char * strchr (
 		return(string);
 	return ( NULL );
 }
-

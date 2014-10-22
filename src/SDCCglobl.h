@@ -1,4 +1,22 @@
-/* SDCCglobl.h - global macros etc required by all files */
+/*-------------------------------------------------------------------------
+  SDCCglobl.h - global macros etc required by all files
+
+  Copyright (C) 1998, Sandeep Dutta . sandeep.dutta@usa.net
+
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the
+  Free Software Foundation; either version 2, or (at your option) any
+  later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+-------------------------------------------------------------------------*/
 
 #ifndef SDCCGLOBL_H
 #define SDCCGLOBL_H
@@ -10,17 +28,31 @@
 
 #ifndef __cplusplus
 # ifndef _MSC_VER
-#  include <stdbool.h>
-#  define  TRUE  true
-#  define  FALSE false
+#   include <stdbool.h>
+#   ifndef TRUE
+#     define TRUE   true
+#   endif
+#   ifndef FALSE
+#     define FALSE  false
+#   endif
 # else
-typedef unsigned char bool;
-#  define  TRUE   1
-#  define  FALSE  0
+    typedef unsigned char bool;
+#   define true     1
+#   define false    0
+#   ifndef TRUE
+#     define TRUE   1
+#   endif
+#   ifndef FALSE
+#     define FALSE  0
+#   endif
 # endif
 #else
-#  define  TRUE   true
-#  define  FALSE  false
+# ifndef TRUE
+#   define TRUE     true
+# endif
+# ifndef FALSE
+#   define FALSE    false
+# endif
 #endif
 
 #include "SDCCset.h"
@@ -33,37 +65,37 @@ typedef unsigned char bool;
 #define UNIX_DIR_SEPARATOR_CHAR    '/'
 
 #if defined(__BORLANDC__) || defined(_MSC_VER)
-#define STRCASECMP stricmp
-#define STRNCASECMP strnicmp
+# define STRCASECMP   stricmp
+# define STRNCASECMP  strnicmp
 #else
-#define STRCASECMP strcasecmp
-#define STRNCASECMP strncasecmp
+# define STRCASECMP   strcasecmp
+# define STRNCASECMP  strncasecmp
 #endif
 
 #if defined(__MSDOS__) || defined(_WIN32) || defined(__OS2__) || defined (__CYGWIN__)
 
-#ifndef HAVE_DOS_BASED_FILE_SYSTEM
-#define HAVE_DOS_BASED_FILE_SYSTEM 1
-#endif
+# ifndef HAVE_DOS_BASED_FILE_SYSTEM
+#   define HAVE_DOS_BASED_FILE_SYSTEM 1
+# endif
 
-#define IS_DIR_SEPARATOR(c)     ((c) == DIR_SEPARATOR_CHAR || (c) == UNIX_DIR_SEPARATOR_CHAR)
+# define IS_DIR_SEPARATOR(c)    ((c) == DIR_SEPARATOR_CHAR || (c) == UNIX_DIR_SEPARATOR_CHAR)
 /* Note that IS_ABSOLUTE_PATH accepts d:foo as well, although it is
    only semi-absolute.  This is because the users of IS_ABSOLUTE_PATH
    want to know whether to prepend the current working directory to
    a file name, which should not be done with a name like d:foo.  */
-#define IS_ABSOLUTE_PATH(f)     (IS_DIR_SEPARATOR((f)[0]) || (((f)[0]) && ((f)[1] == ':')))
-#define FILENAME_CMP(s1, s2)    STRCASECMP(s1, s2)
+# define IS_ABSOLUTE_PATH(f)    (IS_DIR_SEPARATOR((f)[0]) || (((f)[0]) && ((f)[1] == ':')))
+# define FILENAME_CMP(s1, s2)   STRCASECMP(s1, s2)
 
 #else  /* not DOSish */
 
-#define IS_DIR_SEPARATOR(c)     ((c) == DIR_SEPARATOR_CHAR)
-#define IS_ABSOLUTE_PATH(f)     (IS_DIR_SEPARATOR((f)[0]))
-#define FILENAME_CMP(s1, s2)    strcmp(s1, s2)
+# define IS_DIR_SEPARATOR(c)    ((c) == DIR_SEPARATOR_CHAR)
+# define IS_ABSOLUTE_PATH(f)    (IS_DIR_SEPARATOR((f)[0]))
+# define FILENAME_CMP(s1, s2)   strcmp(s1, s2)
 
 #endif /* not DOSish */
 
 #ifdef WIN32
-# define NATIVE_WIN32          1
+# define NATIVE_WIN32           1
 # ifndef __MINGW32__
 #   define  PATH_MAX  _MAX_PATH
 # endif
@@ -84,54 +116,56 @@ typedef unsigned char bool;
 
 #include <limits.h>             /* PATH_MAX                  */
 #if !defined(PATH_MAX) || (PATH_MAX < 2048)
-#  undef  PATH_MAX
-#  define PATH_MAX 2048         /* define a reasonable value */
+# undef PATH_MAX
+# define PATH_MAX     2048      /* define a reasonable value */
 #endif
 
-#define  MAX_REG_PARMS  1
+#define MAX_REG_PARMS 1
 
-#ifndef max
-#  define max(a,b) (a > b ? a : b)
-#endif
-
-#ifndef min
-#  define min(a,b) (a < b ? a : b)
-#endif
+/* C++ doesn't like min and max macros */
+#ifndef __cplusplus
+# ifndef max
+#   define max(a,b)   (a > b ? a : b)
+# endif
+# ifndef min
+#   define min(a,b)   (a < b ? a : b)
+# endif
+#endif /* __cplusplus */
 
 #ifndef THROWS
-#define THROWS
-#define THROW_NONE  0
-#define THROW_SRC   1
-#define THROW_DEST  2
-#define THROW_BOTH  3
+# define THROWS
+# define THROW_NONE  0
+# define THROW_SRC   1
+# define THROW_DEST  2
+# define THROW_BOTH  3
 #endif
 
 /* size's in bytes  */
-#define BOOLSIZE    port->s.char_size
-#define CHARSIZE    port->s.char_size
-#define SHORTSIZE   port->s.short_size
-#define INTSIZE     port->s.int_size
-#define LONGSIZE    port->s.long_size
-#define LONGLONGSIZE port->s.longlong_size
-#define PTRSIZE     port->s.ptr_size
-#define FPTRSIZE    port->s.fptr_size
-#define GPTRSIZE    port->s.gptr_size
-#define BITSIZE     port->s.bit_size
-#define FLOATSIZE   port->s.float_size
-#define MAXBASESIZE port->s.max_base_size
+#define BOOLSIZE      port->s.char_size
+#define CHARSIZE      port->s.char_size
+#define SHORTSIZE     port->s.short_size
+#define INTSIZE       port->s.int_size
+#define LONGSIZE      port->s.long_size
+#define LONGLONGSIZE  port->s.longlong_size
+#define PTRSIZE       port->s.ptr_size
+#define FPTRSIZE      port->s.fptr_size
+#define GPTRSIZE      port->s.gptr_size
+#define BITSIZE       port->s.bit_size
+#define FLOATSIZE     port->s.float_size
+#define MAXBASESIZE   port->s.max_base_size
 
-#define  SMALL_MODEL 0
-#define  LARGE_MODEL 1
+#define  SMALL_MODEL  0
+#define  LARGE_MODEL  1
 
-#define MAX_TVAR 6
-#define INITIAL_INLINEASM 4*1024
+#define MAX_TVAR      6
+#define INITIAL_INLINEASM (4 * 1024)
 #define DEFPOOLSTACK(type,size)     \
     type       *type##Pool        ; \
     type *type##FreeStack [size]  ; \
     int   type##StackPtr = 0      ;
 
 #define PUSH(x,y)   x##FreeStack[x##StackPtr++] = y
-#define PEEK(x)     x##FreeStack[x##StackPtr-1]
+#define PEEK(x)     x##FreeStack[x##StackPtr - 1]
 #define POP(type)   type##FreeStack[--type##StackPtr]
 /* #define POP(x)    (x##StackPtr ? x##FreeStack[--x##StackPtr] :       \
    (assert(x##StackPtr),0)) */
@@ -142,7 +176,7 @@ typedef unsigned char bool;
 #endif
 
 
-#define COPYTYPE(start,end,from) (end = getSpec (start = from))
+#define COPYTYPE(start,end,from)  (end = getSpec (start = from))
 
 
 /* general purpose stack related macros */
@@ -202,6 +236,8 @@ struct optimize
     int noLoopReverse;
     int codeSpeed;
     int codeSize;
+    int lospre;
+    int lospre_unsafe_read;
   };
 
 /** Build model.
@@ -216,7 +252,7 @@ enum
     MODEL_MEDIUM = 4,
     MODEL_LARGE = 8,
     MODEL_FLAT24 = 16,
-    MODEL_PAGE0 = 32, /* for the xa51 port */
+//  MODEL_PAGE0 = 32, /* disabled, was for the xa51 port */
     MODEL_HUGE = 64   /* for banked support */
   };
 
@@ -239,21 +275,15 @@ struct options
     int stackAuto;              /* Stack Automatic  */
     int useXstack;              /* use Xternal Stack */
     int stack10bit;             /* use 10 bit stack (flat24 model only) */
-    int dump_raw;               /* dump after intermediate code generation */
-    int dump_gcse;              /* dump after gcse */
-    int dump_loop;              /* dump after loop optimizations */
-    int dump_kill;              /* dump after dead code elimination */
-    int dump_range;             /* dump after live range analysis */
-    int dump_pack;              /* dump after register packing */
-    int dump_rassgn;            /* dump after register assignment */
-    int dump_tree;              /* dump front-end tree before lowering to iCode */
+    int dump_ast;               /* dump front-end tree before lowering to iCode */
+    int dump_i_code;            /* dump iCode at various stages */
+    int dump_graphs;            /* Dump graphs in .dot format (control-flow, conflict, etc) */
     int cc_only;                /* compile only flag              */
     int intlong_rent;           /* integer & long support routines reentrant */
     int float_rent;             /* floating point routines are reentrant */
-    int out_fmt;                /* 0 = undefined, 'i' = intel Hex format, 's' = motorola S19 format, 't' = elf format, 'Z' = gb format */
+    int out_fmt;                /* 0 = undefined, 'i' = intel Hex format, 's' = motorola S19 format, 'E' = elf format, 'Z' = gb format */
     int cyclomatic;             /* print cyclomatic information */
     int noOverlay;              /* don't overlay local variables & parameters */
-    int mainreturn;             /* issue a return after main */
     int xram_movc;              /* use movc instead of movx to read xram (mcs51) */
     int nopeep;                 /* no peep hole optimization */
     int asmpeep;                /* pass inline assembler thru peep hole */
@@ -279,6 +309,7 @@ struct options
     int stack_size;             /* MCS51/DS390 - Tells the linker to allocate this space for stack */
     int no_pack_iram;           /* MCS51/DS390 - Deprecated: Tells the linker not to pack variables in internal ram */
     int acall_ajmp;             /* MCS51 - Use acall/ajmp instead of lcall/ljmp */
+    int no_ret_without_call;    /* MCS51 - Do not use ret independent of acall/lcall */
     int use_non_free;           /* Search / include non-free licensed libraries and header files */
     /* starting address of the segments */
     int xstack_loc;             /* initial location of external stack */
@@ -302,6 +333,7 @@ struct options
     int use_stdout;             /* send errors to stdout instead of stderr */
     int no_std_crt0;            /* for the z80/gbz80 do not link default crt0.o*/
     int std_c99;                /* enable C99 keywords/constructs */
+    int std_c11;                /* enable C11 keywords/constructs */
     int std_sdcc;               /* enable SDCC extensions to C */
     int dollars_in_ident;       /* zero means dollar signs are punctuation */
     int unsigned_char;          /* use unsigned for char without signed/unsigned modifier */
@@ -311,8 +343,9 @@ struct options
     set *calleeSavesSet;        /* list of functions using callee save */
     set *excludeRegsSet;        /* registers excluded from saving */
 /*  set *olaysSet;               * not implemented yet: overlay segments used in #pragma OVERLAY */
-    int max_allocs_per_node;    /* Maximum number of allocations considered at each node in the tree-decomposition based register allocator */
-    int noOptsdccInAsm;         /* Do not emit .optsdcc in asm */
+    int max_allocs_per_node;    /* Maximum number of allocations / combinations considered at each node in the tree-decomposition based algorithms */
+    bool noOptsdccInAsm;        /* Do not emit .optsdcc in asm */
+    bool oldralloc;             /* Use old register allocator */
   };
 
 /* forward definition for variables accessed globally */
@@ -361,23 +394,26 @@ void setParseWithComma (set **, const char *);
     system.
 */
 #define wassertl(a,s)   ((a) ? 0 : \
-        (werror (E_INTERNAL_ERROR,__FILE__,__LINE__, s), 0))
+        (werror (E_INTERNAL_ERROR, __FILE__, __LINE__, s), 0))
 
 #define wassert(a)    wassertl(a,"code generator internal error")
 
-#define DUMP_RAW0     1
-#define DUMP_RAW1     DUMP_RAW0+1
-#define DUMP_CSE      DUMP_RAW1+1
-#define DUMP_DFLOW    DUMP_CSE+1
-#define DUMP_GCSE     DUMP_DFLOW+1
-#define DUMP_DEADCODE DUMP_GCSE+1
-#define DUMP_LOOP     DUMP_DEADCODE+1
-#define DUMP_LOOPG    DUMP_LOOP+1
-#define DUMP_LOOPD    DUMP_LOOPG+1
-#define DUMP_RANGE    DUMP_LOOPD+1
-#define DUMP_PACK     DUMP_RANGE+1
-#define DUMP_RASSGN   DUMP_PACK+1
-#define DUMP_LRANGE   DUMP_RASSGN+1
+enum {
+  DUMP_RAW0 = 1,
+  DUMP_RAW1,
+  DUMP_CSE,
+  DUMP_DFLOW,
+  DUMP_GCSE,
+  DUMP_DEADCODE,
+  DUMP_LOOP,
+  DUMP_LOOPG,
+  DUMP_LOOPD,
+  DUMP_RANGE,
+  DUMP_PACK,
+  DUMP_RASSGN,
+  DUMP_LRANGE,
+  DUMP_LOSPRE
+};
 
 struct _dumpFiles {
   int id;

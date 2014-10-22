@@ -6,7 +6,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -35,7 +35,7 @@
 #define SCHAR_MIN  -128
 #define UCHAR_MAX   0xff
 #define UCHAR_MIN   0
-#ifdef SDCC_CHAR_UNSIGNED
+#ifdef __SDCC_CHAR_UNSIGNED
 #define CHAR_MAX    UCHAR_MAX
 #define CHAR_MIN    UCHAR_MIN
 #else

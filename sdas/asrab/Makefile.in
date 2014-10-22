@@ -36,7 +36,8 @@ VPATH           = @srcdir@
 
 CPPFLAGS        = @CPPFLAGS@ -DSDCDB -DNOICE -DINDEXLIB -I. -I$(srcdir) -I$(srcdir)/../asxxsrc -I$(srcdir)/../../support/util
 CFLAGS          = @CFLAGS@ @WALL_FLAG@ $(CPPFLAGS)
-LDFLAGS         = @LDFLAGS@ -lm
+LDFLAGS         = @LDFLAGS@
+LIBS            = -lm
 
 OBJDIR = obj
 
@@ -45,10 +46,10 @@ UTILSRC = dbuf.c dbuf_string.c
 UTILLIBOBJS = $(UTILSRC:%.c=$(OBJDIR)/%.o)
 
 ASXXLIB = $(srcdir)/../asxxsrc
-ASXXLIBSRC = asdbg.c asdata.c asexpr.c aslex.c aslist.c asmain.c asout.c assubr.c assym.c sdas.c strcmpi.c
+ASXXLIBSRC = asdbg.c asdata.c asexpr.c aslex.c aslist.c asmain.c asout.c assubr.c assym.c asmcro.c sdas.c strcmpi.c
 ASXXLIBOBJS = $(ASXXLIBSRC:%.c=$(OBJDIR)/%.o)
 
-SRC = rabbitext.c rabbitpst.c rabbitmch.c rabbitadr.c
+SRC = rabpst.c rabmch.c rabadr.c
 OBJS = $(SRC:%.c=$(OBJDIR)/%.o)
 
 ASSOURCES = $(SRC) $(ASXXLIBSRC:%.c=$(ASXXLIB)/%.c) $(UTILSRC:%.c=$(UTILLIB)/%.c)
@@ -65,7 +66,7 @@ transform       = @program_transform_name@
 all: checkconf $(ASX)
 
 $(ASX): $(ASOBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(ASOBJECTS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(ASOBJECTS) $(LIBS)
 
 # Compiling and installing everything and running test
 # ----------------------------------------------------

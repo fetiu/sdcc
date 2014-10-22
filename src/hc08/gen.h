@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
-  SDCCgen51.h - header file for code generation for 8051
+  gen.h - header file for code generation for hc(s)08
 
              Written By -  Sandeep Dutta . sandeep.dutta@usa.net (1998)
 
@@ -22,8 +22,8 @@
    what you give them.   Help stamp out software-hoarding!  
 -------------------------------------------------------------------------*/
 
-#ifndef SDCCGEN51_H
-#define SDCCGEN51_H
+#ifndef SDCCGENHC08_H
+#define SDCCGENHC08_H
 
 enum
   {
@@ -31,7 +31,7 @@ enum
     AOP_REG, AOP_DIR,
     AOP_STK, AOP_IMMD, AOP_STR,
     AOP_CRY, 
-    AOP_EXT, AOP_SOF, AOP_DUMMY
+    AOP_EXT, AOP_SOF, AOP_DUMMY, AOP_IDX
   };
 
 enum
@@ -58,15 +58,14 @@ typedef struct asmop
        AOP_STR    -  array of strings
        AOP_SOF    -  operand at an offset on the stack
        AOP_EXT    -  operand using extended addressing mode
+       AOP_IDX    -  operand using indexed addressing mode
     */
+    short regmask;              /* register mask if AOP_REG */
     short coff;			/* current offset */
     short size;			/* total size */
-    short psize;		/* pointer size */
     operand *op;		/* originating operand */
     unsigned code:1;		/* is in Code space */
-    unsigned paged:1;		/* in paged memory  */
     unsigned freed:1;		/* already freed    */
-    unsigned isaddr:1;		/* is an address to actual operand */
     unsigned stacked:1;		/* partial results stored on stack */
     struct asmop *stk_aop[4];	/* asmops for the results on the stack */
     union
@@ -74,14 +73,11 @@ typedef struct asmop
 	value *aop_lit;		/* if literal */
 	reg_info *aop_reg[4];	/* array of registers */
 	char *aop_dir;		/* if direct  */
-	reg_info *aop_ptr;		/* either -> to r0 or r1 */
 	struct {
-		int  from_cast_remat;   /* cast remat created this : immd2 field used for highest order*/
 		char *aop_immd1;	/* if immediate others are implied */
 		char *aop_immd2;	/* cast remat will generate this   */
 	} aop_immd;
 	int aop_stk;		/* stack offset when AOP_STK */
-	char *aop_str[4];	/* just a string array containing the location */
       }
     aopu;
   }
@@ -90,8 +86,10 @@ asmop;
 void genhc08Code (iCode *);
 void hc08_emitDebuggerSymbol (const char *);
 
-//extern char *fReturn8051[];
 extern unsigned fReturnSizeHC08;
-//extern char **fReturn;
+
+iCode *hasInchc08 (operand *op, const iCode *ic, int osize);
+extern bool hc08_assignment_optimal;
 
 #endif
+

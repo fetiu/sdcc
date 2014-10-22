@@ -1,24 +1,32 @@
-/* asexpr.c
+/* asexpr.c */
 
-   Copyright (C) 1989-1995 Alan R. Baldwin
-   721 Berkeley St., Kent, Ohio 44240
+/*
+ *  Copyright (C) 1989-2010  Alan R. Baldwin
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * Alan R. Baldwin
+ * 721 Berkeley St.
+ * Kent, Ohio  44240
+ *
+ *   With enhancements from
+ *
+ *      Bill McKinnon (BM)
+ *      w_mckinnon at conknet dot com
+ */
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 3, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
-#include <stdio.h>
-#include <setjmp.h>
-#include <string.h>
 #include "sdas.h"
 #include "asxxxx.h"
 
@@ -39,8 +47,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *              VOID    clrexpr()
  *              int     digit()
  *              VOID    expr()
+ *              VOID    exprmasks()
  *              int     oprio()
  *              VOID    term()
+ *              a_uint  rngchk()
  *
  *      asexpr.c contains no local/static variables
  */
@@ -57,6 +67,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *      the expr structure supplied by the user.
  *
  *      local variables:
+ *              a_uint  ae              value from expr esp
+ *              a_uint  ar              value from expr re
  *              int     c               current assembler-source
  *                                      text character
  *              int     p               current operator priority
@@ -71,6 +83,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *              VOID    abscheck()      asexpr.c
  *              VOID    clrexpr()       asexpr.c
  *              VOID    expr()          asexpr.c
+ *              int     get()           aslex.c
  *              int     getnb()         aslex.c
  *              int     oprio()         asexpr.c
  *              VOID    qerr()          assubr.c
@@ -87,9 +100,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  */
 
 VOID
-expr(register struct expr *esp, int n)
+expr(struct expr *esp, int n)
 {
-        register int c, p;
+        a_uint ae, ar;  
+        int c, p;
         struct area *ap;
         struct expr re;
 
@@ -105,6 +119,10 @@ expr(register struct expr *esp, int n)
                 clrexpr(&re);
                 expr(&re, p);
                 esp->e_rlcf |= re.e_rlcf;
+                
+                ae = esp->e_addr;
+                ar = re.e_addr;
+
                 if (c == '+') {
                         /*
                          * esp + re, at least one must be absolute
@@ -126,7 +144,7 @@ expr(register struct expr *esp, int n)
                                 rerr();
                         if (re.e_flag)
                                 esp->e_flag = 1;
-                        esp->e_addr += re.e_addr;
+                        ae += ar;
                 } else
                 if (c == '-') {
                         /*
@@ -141,114 +159,107 @@ expr(register struct expr *esp, int n)
                         }
                         if (re.e_flag)
                                 rerr();
-                        esp->e_addr -= re.e_addr;
+                        ae -= ar;
                 } else {
                         /*
                          * Both operands (esp and re) must be constants
                          */
-                    /* SD :- moved the abscheck to each case
-                       case and change the right shift operator.. if
-                       right shift by 8 bits of a relocatable address then
-                       the user wants the higher order byte. set the R3_MSB
-                       for the expression */
-                       switch (c) {
-
+                        /* SD/MB :- postpone the abscheck to cases '>' and '['
+                           and change the right shift operator.. if
+                           right shift by 8/16/24 bits of a relocatable address then
+                           the user wants the higher order byte. set the R_MSB
+                           for the expression */
+                        if (c != '>' && c != '[')
+                                abscheck(esp);
+                        abscheck(&re);
+                        switch (c) {
+                        /*
+                         * The (int) /, %, and >> operations
+                         * are truncated to a_bytes.
+                         */
                         case '*':
-                            abscheck(esp);
-                            abscheck(&re);
-                            esp->e_addr *= re.e_addr;
-                            break;
+                                ae *= ar;
+                                break;
 
                         case '/':
-                            abscheck(esp);
-                            abscheck(&re);
-                            esp->e_addr /= re.e_addr;
-                            break;
+                                if (ar == 0) {
+                                        ae = 0;
+                                        err('z');
+                                } else {
+                                        ae /= ar;
+                                }
+                                break;
 
                         case '&':
-                            abscheck(esp);
-                            abscheck(&re);
-                            esp->e_addr &= re.e_addr;
-                            break;
+                                ae &= ar;
+                                break;
 
                         case '|':
-                            abscheck(esp);
-                            abscheck(&re);
-                            esp->e_addr |= re.e_addr;
-                            break;
+                                ae |= ar;
+                                break;
 
                         case '%':
-                            abscheck(esp);
-                            abscheck(&re);
-                            esp->e_addr %= re.e_addr;
-                            break;
+                                if (ar == 0) {
+                                        ae = 0;
+                                        err('z');
+                                } else {
+                                        ae %= ar;
+                                }
+                                break;
 
                         case '^':
-                            abscheck(esp);
-                            abscheck(&re);
-                            esp->e_addr ^= re.e_addr;
-                            break;
+                                ae ^= ar;
+                                break;
 
                         case '<':
-                            abscheck(esp);
-                            abscheck(&re);
-                            esp->e_addr <<= re.e_addr;
-                            break;
+                                ae <<= ar;
+                                break;
 
                         case '>':
-                            /* SD change here */
-                            abscheck(&re);
-                            /* if the left is a relative address &
-                               the right side is == 8 then */
-                            if (esp->e_base.e_ap && re.e_addr == 8) {
-                                esp->e_rlcf |= R3_MSB ;
+                                /* SD change here */
+                                /* if the left is a relative address &
+                                   the right side is 8/16/24 then */
+                                if (esp->e_base.e_ap && ar == 8) {
+                                        esp->e_rlcf |= R_MSB;
+                                        break;
+                                }
+                                else if (esp->e_base.e_ap && ar == 16) {
+                                        esp->e_rlcf |= R_HIB;
+                                        break;
+                                }
+                                else if (esp->e_base.e_ap && ar == 24) {
+                                        esp->e_rlcf |= R_MSB | R_HIB;
+                                        break;
+                                }
+                                /* else continue with the normal processing */
+                                abscheck(esp);
+                                ae >>= ar;
                                 break;
-                            }
-                            else if (esp->e_base.e_ap && re.e_addr == 16)
-                            {
-//                                if (flat24Mode)
-//                                {
-                                    esp->e_rlcf |= R_HIB;
-//                                }
-//                                else
-//                                {
-//                                    warnBanner();
-//                                    fprintf(stderr,
-//                                            "(expr >> 16) is only meaningful in "
-//                                            ".flat24 mode.\n");
-//                                    qerr();
-//                                }
 
-                               break;
-                            }
-                            /* else continue with the normal processing */
-                            abscheck(esp);
-                            esp->e_addr >>= re.e_addr;
-                            break;
                         case '[':
                                 if (is_sdas() && is_sdas_target_8051_like()) {
                                         /* MB added [ for bit access in bdata */
-                                        abscheck(&re);
                                         if (getnb() != ']')
                                                 qerr();
 
                                         /* if the left is a relative address then */
                                         if (esp->e_base.e_ap) {
-                                                esp->e_addr |= (re.e_addr | 0x80) << 8;
+                                                ae |= (ar | 0x80) << 8;
                                                 break;
                                         }
-                                        else if ((esp->e_addr & 0x87) == 0x80) {
-                                                esp->e_addr |= re.e_addr;
+                                        else if ((ae & 0x87) == 0x80) {
+                                                ae |= ar;
                                                 break;
                                         }
                                 }
                                 /* fall through */
 
-                       default:
-                           qerr();
-                           break;
-                       }
+                        default:
+                                qerr();
+                                break;
+                        }
                 }
+                esp->e_addr = rngchk(ae);
         }
         unget(c);
 }
@@ -300,7 +311,7 @@ absexpr(void)
  *              int     c               current character
  *              char    id[]            symbol name
  *              char *  jp              pointer to assembler-source text
- *              int     n               constant evaluation running sum
+ *              a_uint  n               constant evaluation running sum
  *              int     r               current evaluation radix
  *              sym *   sp              pointer to a sym structure
  *              tsym *  tp              pointer to a tsym structure
@@ -332,14 +343,15 @@ absexpr(void)
  */
 
 VOID
-term(register struct expr *esp)
+term(struct expr *esp)
 {
-        register int c, n;
-        register const char *jp;
+        int c;
+        const char *jp;
         char id[NCPS];
         struct sym  *sp;
         struct tsym *tp;
         int r, v;
+        a_uint n;
 
         r = radix;
         c = getnb();
@@ -362,7 +374,7 @@ term(register struct expr *esp)
         if (c == '-') {
                 expr(esp, 100);
                 abscheck(esp);
-                esp->e_addr = 0 - esp->e_addr;
+                esp->e_addr = ~esp->e_addr + 1;
                 return;
         }
         if (c == '~') {
@@ -374,24 +386,32 @@ term(register struct expr *esp)
         if (c == '\'') {
                 esp->e_mode = S_USER;
                 esp->e_addr = getmap(-1)&0377;
+                /* MB: accept a closing ' */
+                c = get();
+                if (c != '\'')
+                        unget(c);
                 return;
         }
         if (c == '\"') {
                 esp->e_mode = S_USER;
-                if (hilo) {
+                if ((int) hilo) {
                     esp->e_addr  = (getmap(-1)&0377)<<8;
                     esp->e_addr |= (getmap(-1)&0377);
                 } else {
                     esp->e_addr  = (getmap(-1)&0377);
                     esp->e_addr |= (getmap(-1)&0377)<<8;
                 }
+                /* MB: accept a closing " */
+                c = get();
+                if (c != '\"')
+                        unget(c);
                 return;
         }
         if (c == '>' || c == '<') {
                 expr(esp, 100);
                 if (is_abs (esp)) {
                         /*
-                         * evaluate msb/lsb directly
+                         * evaluate byte selection directly
                          */
                         if (c == '>')
                                 esp->e_addr >>= 8;
@@ -399,16 +419,16 @@ term(register struct expr *esp)
                         return;
                 } else {
                         /*
-                         * let linker perform msb/lsb, lsb is default
+                         * let linker perform byte selection
                          */
-                        esp->e_rlcf |= R3_BYTX;
+                        esp->e_rlcf |= R_BYTX;
                         if (c == '>')
-                                esp->e_rlcf |= R3_MSB;
+                                esp->e_rlcf |= R_MSB;
                         return;
                 }
         }
         /*
-         * Evaluate digit sequences as local symbols
+         * Evaluate digit sequences as reusable symbols
          * if followed by a '$' or as constants.
          */
         if (ctype[c] & DIGIT) {
@@ -423,6 +443,7 @@ term(register struct expr *esp)
                                 n = 10*n + v;
                                 c = get();
                         }
+                        n = rngchk(n);
                         tp = symp->s_tsym;
                         while (tp) {
                                 if (n == tp->t_num) {
@@ -472,7 +493,7 @@ term(register struct expr *esp)
                         c = get();
                 }
                 unget(c);
-                esp->e_addr = n;
+                esp->e_addr = rngchk(n);
                 return;
         }
         /*
@@ -506,7 +527,7 @@ term(register struct expr *esp)
                         }
                         unget(c);
                         esp->e_mode = S_USER;
-                        esp->e_addr = n;
+                        esp->e_addr = rngchk(n);
                         return;
                 }
                 unget(c);
@@ -516,8 +537,8 @@ term(register struct expr *esp)
          * Evaluate symbols and labels
          */
         if (ctype[c] & LETTER) {
-                esp->e_mode = S_USER;
                 getid(id, c);
+                esp->e_mode = S_USER;
                 sp = lookup(id);
                 if (sp->s_type == S_NEW) {
                         esp->e_addr = 0;
@@ -534,7 +555,7 @@ term(register struct expr *esp)
                         /* MB: abused bit 15 of s_addr to indicate bit-addressable bytes */
                         if ((sp->s_addr & 0x8000) && sp->s_area &&
                             (!strcmp(sp->s_area->a_id, "BSEG_BYTES") || !strcmp(sp->s_area->a_id, "BIT_BANK"))) {
-                                esp->e_rlcf |= R_BIT | R3_BYTX;
+                                esp->e_rlcf |= R_BIT | R_BYTX;
                         }
                 }
                 return;
@@ -569,7 +590,7 @@ term(register struct expr *esp)
  */
 
 int
-digit(register int c, register int r)
+digit(int c, int r)
 {
         if (r == 16) {
                 if (ctype[c] & RAD16) {
@@ -623,7 +644,7 @@ digit(register int c, register int r)
  */
 
 VOID
-abscheck(register struct expr *esp)
+abscheck(struct expr *esp)
 {
         if (esp->e_flag || esp->e_base.e_ap) {
                 esp->e_flag = 0;
@@ -658,7 +679,7 @@ abscheck(register struct expr *esp)
  */
 
 int
-is_abs (register struct expr *esp)
+is_abs (struct expr *esp)
 {
         if (esp->e_flag || esp->e_base.e_ap) {
                 return(0);
@@ -687,7 +708,7 @@ is_abs (register struct expr *esp)
  */
 
 int
-oprio(register int c)
+oprio(int c)
 {
         if (c == '*' || c == '/' || c == '%')
                 return (10);
@@ -726,11 +747,110 @@ oprio(register int c)
  */
 
 VOID
-clrexpr(register struct expr *esp)
+clrexpr(struct expr *esp)
 {
         esp->e_mode = 0;
         esp->e_flag = 0;
         esp->e_addr = 0;
         esp->e_base.e_ap = NULL;
         esp->e_rlcf = 0;
+}
+
+/*)Function     a_uint  rngchk(n)
+ *
+ *              a_uint  n               a signed /unsigned value
+ *
+ *
+ *      local variables:
+ *              none
+ *
+ *      global variables:
+ *              none
+ *
+ *      functions called:
+ *              none
+ *
+ *      side effects:
+ *              none
+ */
+
+a_uint
+rngchk(a_uint n)
+{
+        return n;
+}
+
+/*)Function     VOID    exprmasks(esp)
+ *
+ *              int     n               T Line Bytes in Address
+ *
+ *      The function exprmasks() configures the assembler
+ *      for 16, 24, or 32-Bit Data/Addresses.
+ *
+ *      local variables:
+ *              none
+ *
+ *      global variables:
+ *              int     a_bytes         T Line Bytes in Address
+ *              a_uint  a_mask          Address mask
+ *              a_uint  s_mask          Sign mask
+ *              a_uint  v_mask          Value mask
+ *
+ *      functions called:
+ *              none
+ *
+ *      side effects:
+ *              The arithmetic precision parameters are set.
+ */
+ 
+VOID
+exprmasks(int n)
+{
+        a_bytes = n;
+
+#ifdef  LONGINT
+        switch(a_bytes) {
+        default:
+                a_bytes = 2;
+        case 2:
+                a_mask = (a_uint) 0x0000FFFFl;
+                s_mask = (a_uint) 0x00008000l;
+                v_mask = (a_uint) 0x00007FFFl;
+                break;
+
+        case 3:
+                a_mask = (a_uint) 0x00FFFFFFl;
+                s_mask = (a_uint) 0x00800000l;
+                v_mask = (a_uint) 0x007FFFFFl;
+                break;
+
+        case 4:
+                a_mask = (a_uint) 0xFFFFFFFFl;
+                s_mask = (a_uint) 0x80000000l;
+                v_mask = (a_uint) 0x7FFFFFFFl;
+                break;
+        }
+#else
+        switch(a_bytes) {
+        default:
+                a_bytes = 2;
+        case 2:
+                a_mask = (a_uint) 0x0000FFFF;
+                s_mask = (a_uint) 0x00008000;
+                v_mask = (a_uint) 0x00007FFF;
+                break;
+
+        case 3:
+                a_mask = (a_uint) 0x00FFFFFF;
+                s_mask = (a_uint) 0x00800000;
+                v_mask = (a_uint) 0x007FFFFF;
+                break;
+
+        case 4:
+                a_mask = (a_uint) 0xFFFFFFFF;
+                s_mask = (a_uint) 0x80000000;
+                v_mask = (a_uint) 0x7FFFFFFF;
+                break;
+        }
+#endif
 }

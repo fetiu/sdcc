@@ -69,11 +69,12 @@ sdld_init (char *path)
     char *str;
     enum sdld_target_e target;
   } tgt[] = {
-    { "gb", TARGET_ID_GB, },
-    { "z80", TARGET_ID_Z80, },
+    { "gb",   TARGET_ID_GB,   },
+    { "z80",  TARGET_ID_Z80,  },
     { "z180", TARGET_ID_Z180, },
     { "8051", TARGET_ID_8051, },
     { "6808", TARGET_ID_6808, },
+    { "stm8", TARGET_ID_STM8, },
   };
   int i = NELEM (tgt);
 

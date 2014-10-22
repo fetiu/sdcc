@@ -9,7 +9,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -58,45 +58,44 @@ void autobaud ()
 {
 
         /* get timer #1 ready for action (16 bit mode) */
-	TMOD=0x11;
-	TCON = 0;
-	TH1 = TL1 = 0;
-	
-	/* wait for start bit */
+        TMOD=0x11;
+        TCON = 0;
+        TH1 = TL1 = 0;
+        
+        /* wait for start bit */
 autobaud2:
         while(RXD) ; 
 
-	/*  check it a few more times to make
+        /*  check it a few more times to make
              sure we don't trigger on some noise*/
-	if (RXD) goto autobaud2;
-	if (RXD) goto autobaud2;
-	if (RXD) goto autobaud2;
-	if (RXD) goto autobaud2;
+        if (RXD) goto autobaud2;
+        if (RXD) goto autobaud2;
+        if (RXD) goto autobaud2;
+        if (RXD) goto autobaud2;
 
-        /* wait for bit #0 to begin	 */
-	while (!RXD);
+        /* wait for bit #0 to begin      */
+        while (!RXD);
         TR1 = 1; /* start the timer */
-	while (RXD);             // wait for bit #1 to begin
+        while (RXD);             // wait for bit #1 to begin
         while(!RXD);             // wait for bit #2 to begin
         while(RXD);              // wait for bit #4 to begin
         while (!RXD);            // wait for stop bit to begin
         TR1 = 0;                 // stop timing
 
-	/* ;grab bit 7... it's the lsb we want */
-	TH1 = (TH1 << 1) | (TL1 >> 7);
+        /* ;grab bit 7... it's the lsb we want */
+        TH1 = (TH1 << 1) | (TL1 >> 7);
 
-	/* round off if necessary */
+        /* round off if necessary */
         TH1 = (TH1 << 1) | ((TL1 >> 6) & 0x01);
 
-	/* invert since timer #1 will count up */
+        /* invert since timer #1 will count up */
         TH1 = ~TH1;
 
-	/* now TH1 has the correct reload value (I hope) */
-	TH1++ ;
+        /* now TH1 has the correct reload value (I hope) */
+        TH1++ ;
 
-	TL1 = TH1;
-	TMOD =  0x21     ;      // set timer #1 for 8 bit auto-reload
+        TL1 = TH1;
+        TMOD =  0x21     ;      // set timer #1 for 8 bit auto-reload
         PCON =  0x80     ;      // configure built-in uart
         SCON =  0x52     ;
 }
-

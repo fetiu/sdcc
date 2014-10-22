@@ -25,11 +25,11 @@
 -------------------------------------------------------------------------*/
 
 #include "common.h"
-#include "SDCCsystem.h"
+#include "dbuf_string.h"
+
 #include "main.h"
 #include "ralloc.h"
 #include "device.h"
-#include "SDCCutil.h"
 #include "glue.h"
 #include "pcode.h"
 #include "SDCCargs.h"
@@ -81,6 +81,7 @@ static char *_pic16_keywords[] =
 
 
 pic16_sectioninfo_t pic16_sectioninfo;
+int has_xinst_config = 0;
 
 extern char *pic16_processor_base_name(void);
 
@@ -91,6 +92,7 @@ void pic16_assignRegisters (ebbIndex *);
 static int regParmFlg = 0;  /* determine if we can register a parameter */
 
 pic16_options_t pic16_options;
+pic16_config_options_t *pic16_config_options;
 
 extern set *includeDirsSet;
 extern set *dataDirsSet;
@@ -110,6 +112,7 @@ _pic16_init (void)
   asm_addTree (&asm_asxxxx_mapping);
   pic16_pCodeInitRegisters();
   maxInterrupts = 2;
+  memset(&pic16_options, 0, sizeof(pic16_options));
 }
 
 static void
@@ -163,7 +166,8 @@ enum {
   P_STACK = 1,
   P_CODE,
   P_UDATA,
-  P_LIBRARY
+  P_LIBRARY,
+  P_CONFIG
 };
 
 static int
@@ -184,7 +188,7 @@ do_pragma (int id, const char *name, const char *cp)
         reg_info *reg;
         symbol *sym;
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_INT != token.type)
           {
             err = 1;
@@ -192,7 +196,7 @@ do_pragma (int id, const char *name, const char *cp)
           }
         stackPos = token.val.int_val;
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_INT != token.type)
           {
             err = 1;
@@ -200,7 +204,7 @@ do_pragma (int id, const char *name, const char *cp)
           }
         stackLen = token.val.int_val;
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_EOL != token.type)
           {
             err = 1;
@@ -209,7 +213,7 @@ do_pragma (int id, const char *name, const char *cp)
 
         if (stackLen < 1) {
           stackLen = 64;
-          fprintf(stderr, "%s:%d: warning: setting stack to default size %d (0x%04x)\n",
+          fprintf (stderr, "%s:%d: warning: setting stack to default size %d (0x%04x)\n",
                   filename, lineno, stackLen, stackLen);
         }
 
@@ -238,19 +242,19 @@ do_pragma (int id, const char *name, const char *cp)
           }
         }
 
-        reg = newReg(REG_SFR, PO_SFR_REGISTER, stackPos, "_stack", stackLen-1, 0, NULL);
-        addSet(&pic16_fix_udata, reg);
+        reg = newReg (REG_SFR, PO_SFR_REGISTER, stackPos, "_stack", stackLen-1, 0, NULL);
+        addSet (&pic16_fix_udata, reg);
 
-        reg = newReg(REG_SFR, PO_SFR_REGISTER, stackPos + stackLen-1, "_stack_end", 1, 0, NULL);
-        addSet(&pic16_fix_udata, reg);
+        reg = newReg (REG_SFR, PO_SFR_REGISTER, stackPos + stackLen-1, "_stack_end", 1, 0, NULL);
+        addSet (&pic16_fix_udata, reg);
 
-        sym = newSymbol("stack", 0);
-        sprintf(sym->rname, "_%s", sym->name);
-        addSet(&publics, sym);
+        sym = newSymbol ("stack", 0);
+        sprintf (sym->rname, "_%s", sym->name);
+        addSet (&publics, sym);
 
-        sym = newSymbol("stack_end", 0);
-        sprintf(sym->rname, "_%s", sym->name);
-        addSet(&publics, sym);
+        sym = newSymbol ("stack_end", 0);
+        sprintf (sym->rname, "_%s", sym->name);
+        addSet (&publics, sym);
 
         initsfpnt = 1;    // force glue() to initialize stack/frame pointers */
       }
@@ -261,14 +265,14 @@ do_pragma (int id, const char *name, const char *cp)
       {
         absSym *absS;
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_STR != token.type)
           goto code_err;
 
-        absS = Safe_calloc(1, sizeof(absSym));
-        sprintf(absS->name, "_%s", get_pragma_string(&token));
+        absS = Safe_calloc (1, sizeof (absSym));
+        sprintf (absS->name, "_%s", get_pragma_string (&token));
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_INT != token.type)
           {
           code_err:
@@ -278,7 +282,7 @@ do_pragma (int id, const char *name, const char *cp)
           }
         absS->address = token.val.int_val;
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_EOL != token.type)
           {
             err = 1;
@@ -287,11 +291,11 @@ do_pragma (int id, const char *name, const char *cp)
 
         if ((absS->address % 2) != 0) {
           absS->address--;
-          fprintf(stderr, "%s:%d: warning: code memory locations should be word aligned, will locate to 0x%06x instead\n",
-                  filename, lineno, absS->address);
+          fprintf (stderr, "%s:%d: warning: code memory locations should be word aligned, will locate to 0x%06x instead\n",
+                   filename, lineno, absS->address);
         }
 
-        addSet(&absSymSet, absS);
+        addSet (&absSymSet, absS);
 //      fprintf(stderr, "%s:%d symbol %s will be placed in location 0x%06x in code memory\n",
 //        __FILE__, __LINE__, symname, absS->address);
       }
@@ -307,18 +311,18 @@ do_pragma (int id, const char *name, const char *cp)
         sectName *snam;
         int found = 0;
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_STR == token.type)
-          sectname = Safe_strdup(get_pragma_string(&token));
+          sectname = Safe_strdup (get_pragma_string (&token));
         else
           {
             err = 1;
             break;
           }
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_STR == token.type)
-          symname = get_pragma_string(&token);
+          symname = get_pragma_string (&token);
         else
           {
             //fprintf (stderr, "%s:%d: #pragma udata [section-name] [symbol] -- section-name or symbol missing!\n", filename, lineno);
@@ -328,24 +332,24 @@ do_pragma (int id, const char *name, const char *cp)
 
         while (symname)
           {
-            ssym = Safe_calloc(1, sizeof(sectSym));
-            ssym->name = Safe_calloc(1, strlen(symname) + 2);
-            sprintf(ssym->name, "%s%s", port->fun_prefix, symname);
+            ssym = Safe_calloc (1, sizeof (sectSym));
+            ssym->name = Safe_calloc (1, strlen (symname) + 2);
+            sprintf (ssym->name, "%s%s", port->fun_prefix, symname);
             ssym->reg = NULL;
 
-            addSet(&sectSyms, ssym);
+            addSet (&sectSyms, ssym);
 
-            nsym = newSymbol((char *)symname, 0);
+            nsym = newSymbol ((char *)symname, 0);
             strcpy(nsym->rname, ssym->name);
 
 #if 0
-            checkAddSym(&publics, nsym);
+            checkAddSym (&publics, nsym);
 #endif
 
             found = 0;
-            for (snam = setFirstItem(sectNames);snam;snam=setNextItem(sectNames))
+            for (snam = setFirstItem (sectNames); snam; snam = setNextItem (sectNames))
               {
-                if (!strcmp(sectname, snam->name))
+                if (!strcmp (sectname, snam->name))
                   {
                     found=1;
                     break;
@@ -354,23 +358,23 @@ do_pragma (int id, const char *name, const char *cp)
 
             if(!found)
               {
-                snam = Safe_calloc(1, sizeof(sectName));
-                snam->name = Safe_strdup(sectname);
+                snam = Safe_calloc (1, sizeof (sectName));
+                snam->name = Safe_strdup (sectname);
                 snam->regsSet = NULL;
 
-                addSet(&sectNames, snam);
+                addSet (&sectNames, snam);
               }
 
             ssym->section = snam;
 
 #if 0
-            fprintf(stderr, "%s:%d placing symbol %s at section %s (%p)\n", __FILE__, __LINE__,
-               ssym->name, snam->name, snam);
+            fprintf (stderr, "%s:%d placing symbol %s at section %s (%p)\n", __FILE__, __LINE__,
+                     ssym->name, snam->name, snam);
 #endif
 
-            cp = get_pragma_token(cp, &token);
+            cp = get_pragma_token (cp, &token);
             if (TOKEN_STR == token.type)
-              symname = get_pragma_string(&token);
+              symname = get_pragma_string (&token);
             else if (TOKEN_EOL == token.type)
               symname = NULL;
             else
@@ -380,7 +384,7 @@ do_pragma (int id, const char *name, const char *cp)
               }
           }
 
-          Safe_free(sectname);
+          Safe_free (sectname);
       }
       break;
 
@@ -389,10 +393,10 @@ do_pragma (int id, const char *name, const char *cp)
       {
         const char *lmodule;
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_EOL != token.type)
           {
-            lmodule = get_pragma_string(&token);
+            lmodule = get_pragma_string (&token);
 
             /* lmodule can be:
              * c    link the C library
@@ -401,22 +405,22 @@ do_pragma (int id, const char *name, const char *cp)
              * debug    link the debug libary
              * anything else, will link as-is */
 
-            if(!strcmp(lmodule, "c"))
+            if(!strcmp (lmodule, "c"))
               libflags.want_libc = 1;
-            else if(!strcmp(lmodule, "math"))
+            else if(!strcmp (lmodule, "math"))
               libflags.want_libm = 1;
-            else if(!strcmp(lmodule, "io"))
+            else if(!strcmp (lmodule, "io"))
               libflags.want_libio = 1;
-            else if(!strcmp(lmodule, "debug"))
+            else if(!strcmp (lmodule, "debug"))
               libflags.want_libdebug = 1;
-            else if(!strcmp(lmodule, "ignore"))
+            else if(!strcmp (lmodule, "ignore"))
               libflags.ignore = 1;
             else
               {
                 if(!libflags.ignore)
                   {
-                    fprintf(stderr, "link library %s\n", lmodule);
-                    addSetHead(&libFilesSet, (char *)lmodule);
+                    fprintf (stderr, "link library %s\n", lmodule);
+                    addSetHead (&libFilesSet, (char *)lmodule);
                   }
               }
           }
@@ -426,7 +430,7 @@ do_pragma (int id, const char *name, const char *cp)
             break;
           }
 
-        cp = get_pragma_token(cp, &token);
+        cp = get_pragma_token (cp, &token);
         if (TOKEN_EOL != token.type)
           {
             err = 1;
@@ -435,25 +439,129 @@ do_pragma (int id, const char *name, const char *cp)
       }
       break;
 
+    case P_CONFIG:
+      {
+        const char *begin;
+        struct dbuf_s dbuf;
+        bool first = TRUE;
+
+        token.type = TOKEN_EOL; /* just to make the final error test happy */
+
+        dbuf_init (&dbuf, 128);
+        dbuf_append_str (&dbuf, "CONFIG\t");
+
+        do
+          {
+            int isXINST = 0;
+
+            if (first)
+              first = FALSE;
+            else
+              {
+                if (',' == *cp)
+                  ++cp;
+                else
+                  goto error;
+
+                dbuf_append_char (&dbuf, ',');
+              }
+
+
+            while (isspace (*cp))
+              ++cp;
+
+            if (*cp == '_' || isalpha (*cp))
+              {
+                begin = cp++;
+                while (*cp == '_' || isalnum (*cp))
+                  ++cp;
+                if ((5 == (cp - begin)) && (0 == strncmp("XINST", begin, 5)))
+                  {
+                    /* Keep warning if we have XINST=ON ... */
+                    isXINST = 1;
+                  } // if
+                dbuf_append (&dbuf, begin, cp - begin);
+              }
+            else
+              goto error;
+
+            while (isspace (*cp))
+              ++cp;
+
+            if ('=' == *cp)
+              dbuf_append_char (&dbuf, *cp++);
+            else
+              goto error;
+
+            while (isspace (*cp))
+              ++cp;
+
+            if (*cp == '_' || isalnum (*cp))
+              {
+                begin = cp++;
+                while (*cp == '_' || isalnum (*cp))
+                  ++cp;
+                if (isXINST && (3 == cp - begin) && (0 == strncmp("OFF", begin, 3)))
+                  {
+                    /* Suppress warning in glue.c if #pragma config XINST=OFF is present. */
+                    has_xinst_config = 1;
+                  } // if
+                dbuf_append (&dbuf, begin, cp - begin);
+              }
+            else
+              goto error;
+
+            while (isspace (*cp))
+              ++cp;
+          }
+        while ('\0' != *cp);
+
+        /* append to the config options list */
+        if (!pic16_config_options)
+          {
+            pic16_config_options = malloc (sizeof (pic16_config_options_t));
+            memset (pic16_config_options, 0, sizeof (pic16_config_options_t));
+            pic16_config_options->config_str = dbuf_detach_c_str (&dbuf);
+          }
+        else
+          {
+            pic16_config_options_t *p;
+
+            for (p = pic16_config_options; p->next; p = p->next)
+              ;
+            p->next = malloc (sizeof (pic16_config_options_t));
+            memset (p->next, 0, sizeof (pic16_config_options_t));
+            p->next->config_str = dbuf_detach_c_str (&dbuf);
+          }
+        break;
+
+      error:
+        dbuf_destroy(&dbuf);
+        err = 1;
+      }
+      break;
+
 #if 0
   /* This is an experimental code for #pragma inline
      and is temporarily disabled for 2.5.0 release */
     case P_INLINE:
       {
-        char *tmp = strtok((char *)NULL, WHITECOMMA);
+        char *tmp = strtok ((char *)NULL, WHITECOMMA);
 
-        while(tmp) {
-          addSet(&asmInlineMap, Safe_strdup( tmp ));
-          tmp = strtok((char *)NULL, WHITECOMMA);
-        }
-
-        {
-          char *s;
-
-          for(s = setFirstItem(asmInlineMap); s ; s = setNextItem(asmInlineMap)) {
-            debugf("inline asm: `%s'\n", s);
+        while (tmp)
+          {
+            addSet (&asmInlineMap, Safe_strdup ( tmp ));
+            tmp = strtok ((char *)NULL, WHITECOMMA);
           }
-        }
+
+          {
+            char *s;
+
+            for (s = setFirstItem (asmInlineMap); s ; s = setNextItem (asmInlineMap))
+              {
+                debugf ("inline asm: `%s'\n", s);
+              }
+          }
       }
       break;
 #endif  /* 0 */
@@ -463,12 +571,12 @@ do_pragma (int id, const char *name, const char *cp)
       break;
   }
 
-  get_pragma_token(cp, &token);
+  get_pragma_token (cp, &token);
 
-  if (1 == err)
-    werror(W_BAD_PRAGMA_ARGUMENTS, name);
+  if (1 == err || token.type != TOKEN_EOL)
+    werror (W_BAD_PRAGMA_ARGUMENTS, name);
 
-  free_pragma_token(&token);
+  free_pragma_token (&token);
   return processed;
 }
 
@@ -477,6 +585,7 @@ static struct pragma_s pragma_tbl[] = {
   { "code",    P_CODE,    0, do_pragma },
   { "udata",   P_UDATA,   0, do_pragma },
   { "library", P_LIBRARY, 0, do_pragma },
+  { "config",  P_CONFIG,  0, do_pragma },
 /*{ "inline",  P_INLINE,  0, do_pragma }, */
   { NULL,      0,         0, NULL },
   };
@@ -519,38 +628,39 @@ int pic16_enable_peeps = 0;
 
 OPTION pic16_optionsTable[]= {
     /* code generation options */
-    { 0, STACK_MODEL,        NULL, "use stack model 'small' (default) or 'large'"},
+    { 0, STACK_MODEL,           NULL, "use stack model 'small' (default) or 'large'"},
 #if XINST
-    { 'y', "--extended",     &pic16_options.xinst, "enable Extended Instruction Set/Literal Offset Addressing mode"},
+    { 'y', "--extended",        &pic16_options.xinst, "enable Extended Instruction Set/Literal Offset Addressing mode"},
 #endif
-    { 0, "--pno-banksel",    &pic16_options.no_banksel, "do not generate BANKSEL assembler directives"},
+    { 0, "--pno-banksel",       &pic16_options.no_banksel, "do not generate BANKSEL assembler directives"},
 
     /* optimization options */
-    { 0, OPT_BANKSEL,       &pic16_options.opt_banksel, "set banksel optimization level (default=0 no)", CLAT_INTEGER },
-    { 0, "--denable-peeps", &pic16_enable_peeps, "explicit enable of peepholes"},
-    { 0, NO_OPTIMIZE_GOTO,  NULL, "do NOT use (conditional) BRA instead of GOTO"},
-    { 0, OPTIMIZE_CMP,      NULL, "try to optimize some compares"},
-    { 0, OPTIMIZE_DF,       NULL, "thoroughly analyze data flow (memory and time intensive!)"},
+    { 0, OPT_BANKSEL,           &pic16_options.opt_banksel, "set banksel optimization level (default=0 no)", CLAT_INTEGER },
+    { 0, "--denable-peeps",     &pic16_enable_peeps, "explicit enable of peepholes"},
+    { 0, NO_OPTIMIZE_GOTO,      NULL, "do NOT use (conditional) BRA instead of GOTO"},
+    { 0, OPTIMIZE_CMP,          NULL, "try to optimize some compares"},
+    { 0, OPTIMIZE_DF,           NULL, "thoroughly analyze data flow (memory and time intensive!)"},
 
     /* assembling options */
-    { 0, ALT_ASM,           &alt_asm, "Use alternative assembler", CLAT_STRING},
-    { 0, MPLAB_COMPAT,      &pic16_mplab_comp, "enable compatibility mode for MPLAB utilities (MPASM/MPLINK)"},
+    { 0, ALT_ASM,               &alt_asm, "Use alternative assembler", CLAT_STRING},
+    { 0, MPLAB_COMPAT,          &pic16_mplab_comp, "enable compatibility mode for MPLAB utilities (MPASM/MPLINK)"},
 
     /* linking options */
-    { 0, ALT_LINK,          &alt_link, "Use alternative linker", CLAT_STRING },
-    { 0, REP_UDATA,         &pic16_sectioninfo.at_udata, "Place udata variables at another section: udata_acs, udata_ovr, udata_shr", CLAT_STRING },
-    { 0, IVT_LOC,           NULL, "Set address of interrupt vector table."},
-    { 0, NO_DEFLIBS,        &pic16_options.nodefaultlibs,   "do not link default libraries when linking"},
-    { 0, USE_CRT,           NULL, "use <crt-o> run-time initialization module"},
-    { 0, "--no-crt",        &pic16_options.no_crt, "do not link any default run-time initialization module"},
+    { 0, ALT_LINK,              &alt_link, "Use alternative linker", CLAT_STRING },
+    { 0, REP_UDATA,             &pic16_sectioninfo.at_udata, "Place udata variables at another section: udata_acs, udata_ovr, udata_shr", CLAT_STRING },
+    { 0, IVT_LOC,               NULL, "Set address of interrupt vector table."},
+    { 0, NO_DEFLIBS,            &pic16_options.nodefaultlibs,   "do not link default libraries when linking"},
+    { 0, USE_CRT,               NULL, "use <crt-o> run-time initialization module"},
+    { 0, "--no-crt",            &pic16_options.no_crt, "do not link any default run-time initialization module"},
 
     /* debugging options */
-    { 0, "--debug-xtra",    &pic16_debug_verbose, "show more debug info in assembly output"},
-    { 0, "--debug-ralloc",  &pic16_ralloc_debug, "dump register allocator debug file *.d"},
-    { 0, "--pcode-verbose", &pic16_pcode_verbose, "dump pcode related info"},
-    { 0, "--calltree",      &pic16_options.dumpcalltree, "dump call tree in .calltree file"},
-    { 0, "--gstack",        &pic16_options.gstack, "trace stack pointer push/pop to overflow"},
-    { 0, NULL,              NULL, NULL}
+    { 0, "--debug-xtra",        &pic16_debug_verbose, "show more debug info in assembly output"},
+    { 0, "--debug-ralloc",      &pic16_ralloc_debug, "dump register allocator debug file *.d"},
+    { 0, "--pcode-verbose",     &pic16_pcode_verbose, "dump pcode related info"},
+    { 0, "--calltree",          &pic16_options.dumpcalltree, "dump call tree in .calltree file"},
+    { 0, "--gstack",            &pic16_options.gstack, "trace stack pointer push/pop to overflow"},
+    { 0, "--no-warn-non-free",  &pic16_options.no_warn_non_free, "suppress warning on absent --use-non-free option" },
+    { 0, NULL,                  NULL, NULL}
 };
 
 
@@ -645,41 +755,56 @@ extern set *asmOptionsSet;
 static void
 _pic16_linkEdit (void)
 {
-  hTab *linkValues = NULL;
-  char lfrm[1024];
-  char *lcmd;
-  char temp[PATH_MAX];
-  set *tSet = NULL;
-  int ret;
-
   /*
    * link command format:
    * {linker} {incdirs} {lflags} -o {outfile} {spec_ofiles} {ofiles} {libs}
    *
    */
-  sprintf (lfrm, "{linker} {incdirs} {lflags} -w -r -o \"{outfile}\" \"{user_ofile}\" {ofiles} {spec_ofiles} {libs}");
+#define LFRM  "{linker} {incdirs} {lflags} -w -r -o {outfile} {user_ofile} {ofiles} {spec_ofiles} {libs}"
+  hTab *linkValues = NULL;
+  char *lcmd;
+  set *tSet = NULL;
+  int ret;
 
   shash_add (&linkValues, "linker", pic16_linkCmd[0]);
 
   mergeSets (&tSet, libPathsSet);
   mergeSets (&tSet, libDirsSet);
 
-  shash_add (&linkValues, "incdirs", joinStrSet (appendStrSet(tSet, "-I\"", "\"")));
+  shash_add (&linkValues, "incdirs", joinStrSet (processStrSet(tSet, "-I", NULL, shell_escape)));
   shash_add (&linkValues, "lflags", joinStrSet (linkOptionsSet));
 
-  shash_add (&linkValues, "outfile", fullDstFileName ? fullDstFileName : dstFileName);
+  {
+    char *s = shell_escape (fullDstFileName ? fullDstFileName : dstFileName);
+
+    shash_add (&linkValues, "outfile", s);
+    Safe_free (s);
+  }
 
   if (fullSrcFileName)
     {
-      SNPRINTF (temp, sizeof (temp), "%s.o", fullDstFileName ? fullDstFileName : dstFileName);
-//    addSetHead (&relFilesSet, Safe_strdup (temp));
-      shash_add (&linkValues, "user_ofile", temp);
+      struct dbuf_s dbuf;
+      char *s;
+
+      dbuf_init (&dbuf, 128);
+
+      dbuf_append_str (&dbuf, fullDstFileName ? fullDstFileName : dstFileName);
+      dbuf_append (&dbuf, ".o", 2);
+      s = shell_escape (dbuf_c_str (&dbuf));
+      dbuf_destroy (&dbuf);
+      shash_add (&linkValues, "user_ofile", s);
+      Safe_free (s);
     }
 
   if (!pic16_options.no_crt)
-    shash_add (&linkValues, "spec_ofiles", pic16_options.crt_name);
+    {
+      char *s = shell_escape (pic16_options.crt_name);
 
-  shash_add (&linkValues, "ofiles", joinStrSet (appendStrSet (relFilesSet, "\"", "\"")));
+      shash_add (&linkValues, "spec_ofiles", s);
+      Safe_free (s);
+    }
+
+  shash_add (&linkValues, "ofiles", joinStrSet (processStrSet (relFilesSet, NULL, NULL, shell_escape)));
 
   if (!libflags.ignore)
     {
@@ -691,20 +816,25 @@ _pic16_linkEdit (void)
 
       if (libflags.want_libio)
         {
-          SNPRINTF (temp, sizeof (temp), "libio%s.lib", pic16->name[1]);   /* build libio18f452.lib name */
-          addSet (&libFilesSet, Safe_strdup (temp));
+          /* build libio18f452.lib name */
+          struct dbuf_s dbuf;
+
+          dbuf_init (&dbuf, 128);
+
+          dbuf_append (&dbuf, "libio", sizeof ("libio") - 1);
+          dbuf_append_str (&dbuf, pic16->name[1]);
+          dbuf_append (&dbuf, ".lib", sizeof (".lib") - 1);
+          addSet (&libFilesSet, dbuf_detach_c_str (&dbuf));
         }
 
       if (libflags.want_libdebug)
         addSet(&libFilesSet, Safe_strdup ("libdebug.lib"));
     }
 
-  shash_add (&linkValues, "libs", joinStrSet (appendStrSet (libFilesSet, "\"", "\"")));
+  shash_add (&linkValues, "libs", joinStrSet (processStrSet (libFilesSet, NULL, NULL, shell_escape)));
 
-  lcmd = msprintf(linkValues, lfrm);
-
+  lcmd = msprintf(linkValues, LFRM);
   ret = sdcc_system (lcmd);
-
   Safe_free (lcmd);
 
   if (ret)
@@ -715,6 +845,8 @@ _pic16_linkEdit (void)
 static void
 _pic16_finaliseOptions (void)
 {
+  struct dbuf_s dbuf;
+
   port->mem.default_local_map = data;
   port->mem.default_globl_map = data;
 
@@ -732,22 +864,48 @@ _pic16_finaliseOptions (void)
   options.intlong_rent = 1;
 #endif
 
-  setMainValue("mcu", pic16->name[2] );
-  addSet(&preArgvSet, Safe_strdup("-D{mcu}"));
+  dbuf_init (&dbuf, 128);
 
-  setMainValue("mcu1", pic16->name[1] );
-  addSet(&preArgvSet, Safe_strdup("-D__{mcu1}"));
+/*
+ * deprecated in sdcc 3.2.0
+ * TODO: should be obsoleted in sdcc 3.3.0 or later
+  if (options.std_sdcc)
+ */
+    {
+      dbuf_append (&dbuf, "-D", sizeof ("-D") - 1);
+      dbuf_append_str (&dbuf, pic16->name[2]);
+      addSet (&preArgvSet, Safe_strdup (dbuf_c_str (&dbuf)));
+    }
 
+  dbuf_set_length (&dbuf, 0);
+  dbuf_append (&dbuf, "-D__", sizeof ("-D__") - 1);
+  dbuf_append_str (&dbuf, pic16->name[1]);
+  addSet (&preArgvSet, Safe_strdup (dbuf_c_str (&dbuf)));
+
+    {
+      char *upperProc, *p1, *p2;
+      int len;
+
+      dbuf_set_length (&dbuf, 0);
+      len = strlen (port->processor);
+      upperProc = Safe_malloc (len);
+      for (p1 = port->processor, p2 = upperProc; *p1; ++p1, ++p2)
+        {
+          *p2 = toupper (*p1);
+        }
+      dbuf_append (&dbuf, "-D__SDCC_PIC", sizeof ("-D__SDCC_PIC") - 1);
+      dbuf_append (&dbuf, upperProc, len);
+      addSet (&preArgvSet, dbuf_detach_c_str (&dbuf));
+    }
   if (!pic16_options.nodefaultlibs)
     {
-      char devlib[512];
-
       /* now add the library for the device */
-      sprintf(devlib, "libdev%s.lib", pic16->name[1]);   /* e.g., libdev18f452.lib */
-      addSet(&libFilesSet, Safe_strdup(devlib));
+      dbuf_set_length (&dbuf, 0);
+      dbuf_printf (&dbuf, "libdev%s.lib", pic16->name[1]);   /* e.g., libdev18f452.lib */
+      addSet (&libFilesSet, Safe_strdup (dbuf_c_str (&dbuf)));
 
       /* add the internal SDCC library */
-      addSet(&libFilesSet, Safe_strdup( "libsdcc.lib" ));
+      addSet (&libFilesSet, Safe_strdup ("libsdcc.lib" ));
     }
 
   if (alt_asm && alt_asm[0] != '\0')
@@ -768,29 +926,64 @@ _pic16_finaliseOptions (void)
 
   if (options.model == MODEL_SMALL)
     {
-      addSet(&asmOptionsSet, Safe_strdup("-DSDCC_MODEL_SMALL"));
+      addSet (&asmOptionsSet, Safe_strdup ("-DSDCC_MODEL_SMALL"));
     }
   else if (options.model == MODEL_LARGE)
     {
-      char buf[128];
+      char *s, *p;
 
-      addSet(&asmOptionsSet, Safe_strdup("-DSDCC_MODEL_LARGE"));
+      addSet (&asmOptionsSet, Safe_strdup ("-DSDCC_MODEL_LARGE"));
 
-      sprintf(buf, "-D%s -D__%s", pic16->name[2], pic16->name[1]);
-      *(strrchr(buf, 'f')) = 'F';
-      addSet(&asmOptionsSet, Safe_strdup(buf));
+      dbuf_printf (&dbuf, "-D%s -D__%s", pic16->name[2], pic16->name[1]);
+      s = Safe_strdup (dbuf_c_str (&dbuf));
+      /* TODO: borut - why only the first 'f' is converted to upper case?
+       * What if there is an other letter instead 'f'?
+       */
+      if (NULL != (p = strrchr (s, 'f')))
+        *p = 'F';
+      addSet (&asmOptionsSet, s);
     }
 
   if (STACK_MODEL_LARGE)
     {
-      addSet(&preArgvSet, Safe_strdup("-DSTACK_MODEL_LARGE"));
-      addSet(&asmOptionsSet, Safe_strdup("-DSTACK_MODEL_LARGE"));
+/*
+ * deprecated in sdcc 3.2.0
+ * TODO: should be obsoleted in sdcc 3.3.0 or later
+      if (options.std_sdcc)
+ */
+        {
+          addSet (&preArgvSet, Safe_strdup ("-DSTACK_MODEL_LARGE"));
+          addSet (&asmOptionsSet, Safe_strdup ("-DSTACK_MODEL_LARGE"));
+        }
+        addSet (&preArgvSet, Safe_strdup ("-D__STACK_MODEL_LARGE"));
+        addSet (&asmOptionsSet, Safe_strdup ("-D__STACK_MODEL_LARGE"));
     }
   else
     {
-      addSet(&preArgvSet, Safe_strdup("-DSTACK_MODEL_SMALL"));
-      addSet(&asmOptionsSet, Safe_strdup("-DSTACK_MODEL_SMALL"));
+/*
+ * deprecated in sdcc 3.2.0
+ * TODO: should be obsoleted in sdcc 3.3.0 or later
+      if (options.std_sdcc)
+ */
+        {
+          addSet (&preArgvSet, Safe_strdup ("-DSTACK_MODEL_SMALL"));
+          addSet (&asmOptionsSet, Safe_strdup ("-DSTACK_MODEL_SMALL"));
+        }
+      addSet (&preArgvSet, Safe_strdup ("-D__STACK_MODEL_SMALL"));
+      addSet (&asmOptionsSet, Safe_strdup ("-D__STACK_MODEL_SMALL"));
     }
+
+  if (!pic16_options.no_warn_non_free && !options.use_non_free)
+    {
+      fprintf(stderr,
+              "WARNING: Command line option --use-non-free not present.\n"
+              "         When compiling for PIC14/PIC16, please provide --use-non-free\n"
+              "         to get access to device headers and libraries.\n"
+              "         If you do not use these, you may provide --no-warn-non-free\n"
+              "         to suppress this warning (not recommended).\n");
+    } // if
+
+  dbuf_destroy (&dbuf);
 }
 
 
@@ -819,6 +1012,7 @@ _pic16_setDefaultOptions (void)
   pic16_options.ip_stack = 1;       /* set to 1 to enable ipop/ipush for stack */
   pic16_options.gstack = 0;
   pic16_options.debgen = 0;
+  pic16_options.no_warn_non_free = 0;
 }
 
 static const char *
@@ -846,24 +1040,26 @@ _pic16_genAssemblerPreamble (FILE * of)
 {
   char *name = pic16_processor_base_name();
 
-    if(!name) {
-        name = "p18f452";
-        fprintf(stderr,"WARNING: No Pic has been selected, defaulting to %s\n",name);
+  if (!name)
+    {
+      name = "p18f452";
+      fprintf(stderr,"WARNING: No Pic has been selected, defaulting to %s\n",name);
     }
 
-    fprintf (of, "\tlist\tp=%s\n",&name[1]);
-    if (pic16_mplab_comp) {
+  fprintf (of, "\tlist\tp=%s\n", &name[1]);
+  fprintf (of, "\tradix\tdec\n");
+
+  if (pic16_mplab_comp)
+    {
       // provide ACCESS macro used during SFR accesses
       fprintf (of, "\tinclude <p%s.inc>\n", &name[1]);
     }
 
-    if(!pic16_options.omit_configw) {
-        pic16_emitConfigRegs(of);
-        fprintf(of, "\n");
-        pic16_emitIDRegs(of);
-    }
-
-  fprintf (of, "\tradix dec\n");
+  if(!pic16_options.omit_configw) {
+    pic16_emitConfigRegs(of);
+    fprintf(of, "\n");
+    pic16_emitIDRegs(of);
+  }
 }
 
 /* Generate interrupt vector table. */
@@ -1065,6 +1261,7 @@ hasExtBitOp (int op, int size)
 {
   if (op == RRC
       || op == RLC
+      || op == GETABIT
       /* || op == GETHBIT */ /* GETHBIT doesn't look complete for PIC */
      )
     return TRUE;
@@ -1093,7 +1290,7 @@ oclsExpense (struct memmap *oclass)
 */
 const char *pic16_linkCmd[] =
 {
-  "gplink", "$l", "-w", "-r", "-o \"$2\"", "\"$1\"","$3", NULL
+  "gplink", "$l", "-w", "-r", "-o", "$2", "$1","$3", NULL
 };
 
 /** $1 is always the basename.
@@ -1104,7 +1301,7 @@ const char *pic16_linkCmd[] =
 */
 const char *pic16_asmCmd[] =
 {
-  "gpasm", "$l", "$3", "-o", "\"$2\"", "-c", "\"$1.asm\"", NULL
+  "gpasm", "$l", "$3", "-o", "$2", "-c", "$1.asm", NULL
 };
 
 /* Globals */
@@ -1113,7 +1310,7 @@ PORT pic16_port =
   TARGET_ID_PIC16,
   "pic16",
   "MCU PIC16",      /* Target name */
-  "p18f452",        /* Processor */
+  "18f452",        /* Processor */
   {
     pic16glue,
     TRUE,           /* Emit glue around main */
@@ -1183,9 +1380,12 @@ PORT pic16_port =
     "CABS    (ABS,CODE)",   // cabs_name - const absolute data (code or not)
     "XABS    (ABS,XDATA)",  // xabs_name - absolute xdata
     "IABS    (ABS,DATA)",   // iabs_name - absolute data
+    NULL,                   // name of segment for initialized variables
+    NULL,                   // name of segment for copies of initialized variables in code space
     NULL,                   // default location for auto vars
     NULL,                   // default location for global vars
-    1                       // code is read only 1=yes
+    1,                      // code is read only 1=yes
+    1                       // No fancy alignments supported.
   },
   {
     NULL,       /* genExtraAreaDeclaration */
@@ -1226,6 +1426,7 @@ PORT pic16_port =
   _pic16_setDefaultOptions,
   pic16_assignRegisters,
   _pic16_getRegName,
+  NULL,
   _pic16_keywords,
   _pic16_genAssemblerPreamble,
   NULL,             /* no genAssemblerEnd */
@@ -1253,5 +1454,6 @@ PORT pic16_port =
   GPOINTER,         /* treat unqualified pointers as "generic" pointers */
   1,                /* reset labelKey to 1 */
   1,                /* globals & local static allowed */
+  0,                /* Number of registers handled in the tree-decomposition-based register allocator in SDCCralloc.hpp */
   PORT_MAGIC
 };

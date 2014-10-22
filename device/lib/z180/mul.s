@@ -5,7 +5,7 @@
 ;
 ;  This library is free software; you can redistribute it and/or modify it
 ;  under the terms of the GNU General Public License as published by the
-;  Free Software Foundation; either version 2.1, or (at your option) any
+;  Free Software Foundation; either version 2, or (at your option) any
 ;  later version.
 ;
 ;  This library is distributed in the hope that it will be useful,
@@ -26,9 +26,11 @@
 ;   might be covered by the GNU General Public License.
 ;--------------------------------------------------------------------------
 
-        .area   _CODE
+.area   _CODE
 
-__mulint_rrx_s::
+.globl	__mulint
+
+__mulint:
         pop     af
         pop     hl
         pop     de
@@ -38,8 +40,6 @@ __mulint_rrx_s::
 
         ;; Fall through
 
-__muluchar_rrx_hds::
-__mulint_rrx_hds::
 	;; Parameters:
 	;;	hl, de (left, right irrelevant)
 	ld	b,h

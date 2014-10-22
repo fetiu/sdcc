@@ -1,18 +1,14 @@
 /** Function pointer tests.
 
-    type: BOOL, char, int, long
+    type: bool, char, int, long
  */
 #include <testfwk.h>
 
-#ifdef SDCC
+#ifdef __SDCC
 #pragma std_sdcc99
 #endif
 
 #include <stdbool.h>
-
-#ifndef BOOL
-#define BOOL	bool
-#endif
 
 #define TYPE_{type}
 

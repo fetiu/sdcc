@@ -1,24 +1,25 @@
 /* Simple malloc tests.
  */
 #include <stdlib.h>
-#if defined(SDCC_pic16)
+#if defined(__SDCC_pic16)
 #include <malloc.h>
 #endif
 #include <testfwk.h>
 
-#if defined(SDCC_pic16)
+#if defined(__SDCC_pic16)
 __xdata char heap[100];
 #endif
 
 void
 testMalloc (void)
 {
+#ifndef __SDCC_stm8
   void __xdata *p1, *p2, *p3;
   char *p;
   unsigned char i;
 
-#if !defined(PORT_HOST) && !defined(SDCC_gbz80) && !defined(SDCC_z80)
-#if defined(SDCC_pic16)
+#if !defined(PORT_HOST) && !defined(__SDCC_gbz80) && !defined(__SDCC_z80)
+#if defined(__SDCC_pic16)
   _initHeap (heap, sizeof heap);
 #endif
 
@@ -85,4 +86,6 @@ testMalloc (void)
 #else
   LOG (("p3, after freeing p2: %u\n", (unsigned) p3));
 #endif
+#endif
 }
+

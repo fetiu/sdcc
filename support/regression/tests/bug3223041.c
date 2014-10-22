@@ -4,33 +4,29 @@
 
 #include <testfwk.h>
 
-#ifdef SDCC
+#ifdef __SDCC
 #pragma std_sdcc99
 #endif
 
 #include <stdbool.h>
 
-#ifndef BOOL
-#define BOOL bool
-#endif
-
-#ifdef SDCC_hc08
+#if 0
 #define CAST(x)	(x ? true : false)
 #else
 #define CAST(x)	(x)
 #endif
 
-BOOL and(BOOL a, BOOL b, BOOL c, BOOL d)
+bool and(bool a, bool b, bool c, bool d)
 {
 	return a & b & c & d;
 }
 
-BOOL or(BOOL a, BOOL b, BOOL c, BOOL d)
+bool or(bool a, bool b, bool c, bool d)
 {
 	return a | b | c | d;
 }
 
-BOOL xor(BOOL a, BOOL b, BOOL c, BOOL d)
+bool xor(bool a, bool b, bool c, bool d)
 {
 	return a ^ b ^ c ^ d;
 }

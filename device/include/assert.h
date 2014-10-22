@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -38,5 +38,9 @@
 /* Debugging enabled -- verify assertions at run time. */
 void _assert(char *, const char *, unsigned int);
 #define assert(x) ((x) == 0 ? _assert(#x, __FILE__, __LINE__):(void)0)
+
+#if __STDC_VERSION__ >= 201112L
+#define static_assert _Static_assert
+#endif
 
 #endif

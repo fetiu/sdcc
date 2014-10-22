@@ -1,25 +1,21 @@
 /*-------------------------------------------------------------------------
-
   glue.c - glues everything we have done together into one file.
-                Written By -  Sandeep Dutta . sandeep.dutta@usa.net (1998)
 
-   This program is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
-   later version.
+  Copyright (C) 1998, Sandeep Dutta . sandeep.dutta@usa.net
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the
+  Free Software Foundation; either version 2, or (at your option) any
+  later version.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-   In other words, you are welcome to use, share and improve this program.
-   You are forbidden to forbid anyone else to use, share and improve
-   what you give them.   Help stamp out software-hoarding!
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 -------------------------------------------------------------------------*/
 
 #include "../common.h"
@@ -45,6 +41,7 @@ extern char *VersionString;
 extern struct dbuf_s *codeOutBuf;
 extern char *iComments1;
 extern char *iComments2;
+extern int has_xinst_config;
 
 extern int initsfpnt;
 extern unsigned long pFile_isize;
@@ -65,7 +62,7 @@ extern void printPublics (FILE * afile);
 
 void  pic16_pCodeInitRegisters (void);
 pCodeOp *pic16_popCopyReg (pCodeOpReg *pc);
-extern void pic16_pCodeConstString (char *name, char *value, unsigned length);
+extern void pic16_pCodeConstString (char *name, const char *value, unsigned length);
 
 
 /*-----------------------------------------------------------------*/
@@ -164,6 +161,10 @@ pic16emitRegularMap (memmap * map, bool addPublics, bool arFlag)
                         (sym->_isparm && !IS_REGPARM (sym->etype))) &&
                         addPublics &&
                         !IS_STATIC (sym->etype) && !IS_FUNC(sym->type)) {
+
+                        checkAddSym(&publics, sym);
+                } else if (IS_AGGREGATE(sym->type) && sym->level == 0 && ! IS_STATIC(sym->etype)) {
+                        /* If a global variable is not static and will be included in the published list. */
 
                         checkAddSym(&publics, sym);
                 } else
@@ -418,26 +419,38 @@ pic16_initPointer (initList * ilist, sym_link *toType)
   /* pointers can be initialized with address of
      a variable or address of an array element */
   if (IS_AST_OP (expr) && expr->opval.op == '&') {
+
+    /* AST nodes for symbols of type struct or union may be missing type */
+    /* due to the abuse of the sym->implicit flag, so get the type */
+    /* directly from the symbol if it's missing in the node. */
+    sym_link *etype = expr->left->etype;
+    sym_link *ftype = expr->left->ftype;
+    if (!etype && IS_AST_SYM_VALUE(expr->left))
+      {
+        etype = expr->left->opval.val->sym->etype;
+        ftype = expr->left->opval.val->sym->type;
+      }
+
     /* address of symbol */
-    if (IS_AST_SYM_VALUE (expr->left) && expr->left->etype) {
+    if (IS_AST_SYM_VALUE (expr->left) && etype) {
       val = AST_VALUE (expr->left);
       val->type = newLink (DECLARATOR);
-      if(SPEC_SCLS (expr->left->etype) == S_CODE) {
+      if(SPEC_SCLS (etype) == S_CODE) {
         DCL_TYPE (val->type) = CPOINTER;
         CodePtrPointsToConst (val->type);
       }
-      else if (SPEC_SCLS (expr->left->etype) == S_XDATA)
+      else if (SPEC_SCLS (etype) == S_XDATA)
         DCL_TYPE (val->type) = FPOINTER;
-      else if (SPEC_SCLS (expr->left->etype) == S_XSTACK)
+      else if (SPEC_SCLS (etype) == S_XSTACK)
         DCL_TYPE (val->type) = PPOINTER;
-      else if (SPEC_SCLS (expr->left->etype) == S_IDATA)
+      else if (SPEC_SCLS (etype) == S_IDATA)
         DCL_TYPE (val->type) = IPOINTER;
-      else if (SPEC_SCLS (expr->left->etype) == S_EEPROM)
+      else if (SPEC_SCLS (etype) == S_EEPROM)
         DCL_TYPE (val->type) = EEPPOINTER;
       else
         DCL_TYPE (val->type) = POINTER;
 
-      val->type->next = expr->left->ftype;
+      val->type->next = ftype;
       val->etype = getSpec (val->type);
       return val;
     }
@@ -613,7 +626,7 @@ pic16_printIvalType (symbol *sym, sym_link * type, initList * ilist, char ptype,
     val = valCastLiteral(type, floatFromVal(val));
   }
 
-  for (i = 0; i < getSize (type); i++) {
+  for (i = 0; i < (int)getSize (type); i++) {
     pic16_emitDB(pic16aopLiteral(val, i), ptype, p);
   } // for
 }
@@ -622,10 +635,11 @@ pic16_printIvalType (symbol *sym, sym_link * type, initList * ilist, char ptype,
 /* pic16_printIvalChar - generates initital value for character array */
 /*--------------------------------------------------------------------*/
 static int
-pic16_printIvalChar (symbol *sym, sym_link * type, initList * ilist, char *s, char ptype, void *p)
+pic16_printIvalChar (symbol *sym, sym_link * type, initList * ilist, const char *s, char ptype, void *p)
 {
   value *val;
-  int remain, len, ilen;
+  int len;
+  size_t remain, ilen;
 
   if(!p)
     return 0;
@@ -779,9 +793,9 @@ pic16_printIvalBitFields (symbol **sym, initList **ilist, char ptype, void *p)
   symbol *lsym = *sym;
   initList *lilist = *ilist;
   unsigned long ival = 0;
-  int size = 0;
+  unsigned size = 0;
   int bit_start = 0;
-  unsigned long i;
+  unsigned i;
 
 
 #if DEBUG_PRINTIVAL
@@ -791,7 +805,7 @@ pic16_printIvalBitFields (symbol **sym, initList **ilist, char ptype, void *p)
 
   while (lsym && IS_BITFIELD (lsym->type))
     {
-      int bit_length = SPEC_BLEN (lsym->etype);
+      unsigned bit_length = SPEC_BLEN (lsym->etype);
       if (0 == bit_length)
         {
           /* bit-field structure member with a width of 0 */
@@ -886,7 +900,7 @@ pic16_printIvalUnion (symbol * sym, sym_link * type,
 {
   //symbol *sflds;
   initList *iloop = NULL;
-  int size;
+  unsigned int size;
   symbol *sflds = NULL;
 
 #if DEBUG_PRINTIVAL
@@ -1432,26 +1446,44 @@ CODESPACE: %d\tCONST: %d\tPTRCONST: %d\tSPEC_CONST: %d\n", __FUNCTION__, map->sn
 /*-----------------------------------------------------------------*/
 /* pic16_emitConfigRegs - emits the configuration registers              */
 /*-----------------------------------------------------------------*/
-void pic16_emitConfigRegs(FILE *of)
+void pic16_emitConfigRegs (FILE *of)
 {
   int i;
 
-        for(i=0;i<=(pic16->cwInfo.confAddrEnd-pic16->cwInfo.confAddrStart);i++)
-                if(pic16->cwInfo.crInfo[i].emit)        //mask != -1)
-                        fprintf (of, "\t__config 0x%x, 0x%02x\n",
-                                pic16->cwInfo.confAddrStart+i,
-                                (unsigned char) pic16->cwInfo.crInfo[i].value);
+  if (pic16_config_options)
+    {
+      pic16_config_options_t *p;
+
+      /* check if mixing config directives */
+      for (i = 0; i <= (pic16->cwInfo.confAddrEnd - pic16->cwInfo.confAddrStart); ++i)
+        if (pic16->cwInfo.crInfo[i].emit)
+          {
+            werror (E_MIXING_CONFIG);
+            break;
+          }
+
+      /* emit new config directives */
+      for (p = pic16_config_options; p; p = p->next)
+        fprintf (of, "\t%s\n", p->config_str);
+    }
+
+  /* emit old __config directives */
+  for (i = 0; i <= (pic16->cwInfo.confAddrEnd - pic16->cwInfo.confAddrStart); ++i)
+    if (pic16->cwInfo.crInfo[i].emit)        //mask != -1)
+      fprintf (of, "\t__config 0x%06x, 0x%02x\n",
+      pic16->cwInfo.confAddrStart + i,
+      (unsigned char) pic16->cwInfo.crInfo[i].value);
 }
 
-void pic16_emitIDRegs(FILE *of)
+void pic16_emitIDRegs (FILE *of)
 {
   int i;
 
-        for(i=0;i<=(pic16->idInfo.idAddrEnd-pic16->idInfo.idAddrStart);i++)
-                if(pic16->idInfo.irInfo[i].emit)
-                        fprintf (of, "\t__idlocs 0x%06x, 0x%02x\n",
-                                pic16->idInfo.idAddrStart+i,
-                                (unsigned char) pic16->idInfo.irInfo[i].value);
+  for (i=0; i <= (pic16->idInfo.idAddrEnd - pic16->idInfo.idAddrStart); i++)
+    if (pic16->idInfo.irInfo[i].emit)
+      fprintf (of, "\t__idlocs 0x%06x, 0x%02x\n",
+      pic16->idInfo.idAddrStart + i,
+      (unsigned char) pic16->idInfo.irInfo[i].value);
 }
 
 
@@ -1575,7 +1607,7 @@ pic16printPublics (FILE *afile)
         for(sym = setFirstItem (publics); sym; sym = setNextItem (publics))
           /* sanity check */
           if(!IS_STATIC(sym->etype))
-                pic16_emitSymbolIfNew(afile, "\tglobal %s\n", sym->rname, 0);
+                pic16_emitSymbolIfNew(afile, "\tglobal\t%s\n", sym->rname, 0);
 }
 
 /*-----------------------------------------------------------------*/
@@ -1595,10 +1627,10 @@ pic16_printExterns(FILE *afile)
         fprintf(afile, "%s", iComments2);
 
         for(sym = setFirstItem(externs); sym; sym = setNextItem(externs))
-                pic16_emitSymbolIfNew(afile, "\textern %s\n", sym->rname, 1);
+                pic16_emitSymbolIfNew(afile, "\textern\t%s\n", sym->rname, 1);
 
         for(sym = setFirstItem(pic16_builtin_functions); sym; sym = setNextItem(pic16_builtin_functions))
-                pic16_emitSymbolIfNew(afile, "\textern _%s\n", sym->name, 1);
+                pic16_emitSymbolIfNew(afile, "\textern\t_%s\n", sym->name, 1);
 }
 
 /*-----------------------------------------------------------------*/
@@ -1692,8 +1724,8 @@ emitStatistics(FILE *asmFile)
 {
   unsigned long isize, udsize, ramsize;
   statistics.isize = pic16_countInstructions();
-  isize = (statistics.isize >= 0) ? statistics.isize : 0;
-  udsize = (statistics.udsize >= 0) ? statistics.udsize : 0;
+  isize = (((long)statistics.isize) >= 0) ? statistics.isize : 0;
+  udsize = (((long)statistics.udsize) >= 0) ? statistics.udsize : 0;
   ramsize = pic16 ? pic16->RAMsize : 0x200;
   ramsize -= 256; /* ignore access bank and SFRs */
   if (ramsize == 0) ramsize = 64; /* prevent division by zero (below) */
@@ -1730,6 +1762,14 @@ pic16glue ()
 
     mainf = findSymWithLevel(SymbolTab, mainf);
 
+    if (mainf && IFFUNC_HASBODY(mainf->type) && pic16->xinst && !has_xinst_config)
+      {
+        fprintf(stderr, "WARNING: The target device seems to support XINST and no #pragma config XINST=OFF was found.\n");
+        fprintf(stderr, "         The code generated by SDCC does probably not work when XINST is enabled (possibly by default).\n");
+        fprintf(stderr, "         Please make sure to disable XINST.\n");
+        fprintf(stderr, "         (If the target does not actually support XINST, please report this as a bug in SDCC.)\n");
+      } // if
+
     pic16_pCodeInitRegisters();
 
     if(pic16_options.no_crt && mainf && IFFUNC_HASBODY(mainf->type)) {
@@ -1750,13 +1790,9 @@ pic16glue ()
         /* put in the call to main */
         pic16_addpCode2pBlock(pb,pic16_newpCode(POC_CALL,pic16_newpCodeOp("_main",PO_STR)));
 
-        if (options.mainreturn) {
-          pic16_addpCode2pBlock(pb,pic16_newpCodeCharP(";\treturn from main will return to caller\n"));
-          pic16_addpCode2pBlock(pb,pic16_newpCode(POC_RETURN,NULL));
-        } else {
-          pic16_addpCode2pBlock(pb,pic16_newpCodeCharP(";\treturn from main will lock up\n"));
-          pic16_addpCode2pBlock(pb,pic16_newpCode(POC_GOTO,pic16_newpCodeOp("$",PO_STR)));
-        }
+        
+        pic16_addpCode2pBlock(pb,pic16_newpCodeCharP(";\treturn from main will return to caller\n"));
+        pic16_addpCode2pBlock(pb,pic16_newpCode(POC_RETURN,NULL));
     }
 
     /* At this point we've got all the code in the form of pCode structures */
@@ -1860,7 +1896,7 @@ pic16glue ()
     /* if external stack then reserve space of it */
     if(mainf && IFFUNC_HASBODY(mainf->type) && options.useXstack ) {
       fprintf (asmFile, "%s", iComments2);
-      fprintf (asmFile, "; external stack \n");
+      fprintf (asmFile, "; external stack\n");
       fprintf (asmFile, "%s", iComments2);
       fprintf (asmFile,";\t.area XSEG (XDATA)\n"); /* MOF */
       fprintf (asmFile,";\t.ds 256\n");
@@ -1887,7 +1923,7 @@ pic16glue ()
     /* copy the interrupt vector table */
     if(mainf && IFFUNC_HASBODY(mainf->type)) {
       fprintf (asmFile, "\n%s", iComments2);
-      fprintf (asmFile, "; interrupt vector \n");
+      fprintf (asmFile, "; interrupt vector\n");
       fprintf (asmFile, "%s", iComments2);
       dbuf_write_and_destroy (&vBuf, asmFile);
     }

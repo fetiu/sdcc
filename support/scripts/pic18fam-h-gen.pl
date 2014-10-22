@@ -36,6 +36,8 @@
 
 use strict;
 
+my $head = '__SDCC_PIC';
+
 my %families = ();
 my %adc = ();
 my %usart = ();
@@ -45,7 +47,7 @@ while (<DATA>) {
     chomp;
     s/\s*#.*$//;                # remove comments
     s/\s*//g;                   # strip whitespace
-    next if (/^\s*$/);          # ignore empty lines
+    next if (/^\s*$/);         # ignore empty lines
 
     my $line = $_;
 
@@ -60,8 +62,7 @@ while (<DATA>) {
 
     # extract family members
     my @arr = split(/,/, $memberlist);
-    @arr = map { lc($_); } @arr;
-    @arr = sort @arr;
+    @arr = sort(map { uc($_); } @arr);
     $families{$id} = \@arr;
 
     # ADC style per device family
@@ -101,7 +102,7 @@ EOT
 my $pp = "#if   ";
 for my $id (sort keys %families) {
     my $list = $families{$id};
-    my $memb = "defined(pic" . join(") \\\n    || defined(pic", @$list) . ")";
+    my $memb = "defined($head" . join(") \\\n    || defined($head", @$list) . ")";
     print FH <<EOT
 ${pp} ${memb}
 #define __SDCC_PIC16_FAMILY ${id}
@@ -186,6 +187,7 @@ __END__
 # Microchip Technology Inc.
 #
 1812200:18f1220,18f1320:1812200:1812200
+1812300:18f1230,18f1330:1812300:1812300
 1813502:18f13k50,18f14k50:1813502:1813502
 1822200:18f2220,18f2320,18f4220,18f4320:1822200:1822200
 1822210:18f2221,18f2321,18f4221,18f4321:1822200:1822210
@@ -207,6 +209,6 @@ __END__
 1826820:18f2682,18f2685,18f4682,18f4685:1822200:1824500
 1865200:18f6520,18f6620,18f6720,18f8520,18f8620,18f8720:1822200:1865200
 1865270:18f6527,18f6622,18f6627,18f6722,18f8527,18f8622,18f8627,18f8722:1822200:1824501
-1865850:18f6585,18f6680,18f8585,18f8680:1822200:1822200                         # TODO: verify family members and USART
+1865850:18f6585,18f6680,18f8585,18f8680:1822200:1865850
 1865501:18f65j50,18f66j50,18f66j55,18f67j50,18f85j50,18f86j50,18f86j55,18f87j50:1865501:1824501
 1866601:18f66j60,18f66j65,18f67j60,18f86j60,18f86j65,18f87j60,18f96j60,18f96j65,18f97j60:1822200:1824501

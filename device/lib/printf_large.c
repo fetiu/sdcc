@@ -7,7 +7,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -28,7 +28,7 @@
    might be covered by the GNU General Public License.
 -------------------------------------------------------------------------*/
 
-#if defined (SDCC_ds390) || defined (SDCC_USE_XSTACK) || defined (SDCC_MODEL_HUGE)
+#if defined (__SDCC_ds390) || defined (__SDCC_USE_XSTACK) || defined (__SDCC_MODEL_HUGE)
 #define USE_FLOATS 1
 #endif
 
@@ -39,18 +39,14 @@
 #include <stdbool.h>
 #include <sdcc-lib.h>
 
-#ifndef BOOL
-#define BOOL _Bool
-#endif
-
 #define PTR value.ptr
 
-#ifdef SDCC_ds390
+#ifdef __SDCC_ds390
 #define NULL_STRING "<NULL>"
 #define NULL_STRING_LENGTH 6
 #endif
 
-#if defined (SDCC_mcs51) && defined (SDCC_MODEL_SMALL) && !defined (SDCC_STACK_AUTO)
+#if defined (__SDCC_mcs51) && defined (__SDCC_MODEL_SMALL) && !defined (__SDCC_STACK_AUTO)
 # define MEM_SPACE_BUF __idata
 # define MEM_SPACE_BUF_PP __idata
 #else
@@ -91,8 +87,8 @@ typedef union
   const char     *ptr;
 } value_t;
 
-#ifndef SDCC_STACK_AUTO
-  static BOOL lower_case;
+#ifndef __SDCC_STACK_AUTO
+  static bool lower_case;
   static pfn_outputchar output_char;
   static void* p;
   static value_t value;
@@ -101,7 +97,7 @@ typedef union
 
 /****************************************************************************/
 
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
   #define OUTPUT_CHAR(c, p) { output_char (c, p); charsOutputted++; }
 #else
   #define OUTPUT_CHAR(c, p) _output_char (c)
@@ -115,9 +111,9 @@ typedef union
 
 /*--------------------------------------------------------------------------*/
 
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
   static void
-  output_digit (unsigned char n, BOOL lower_case, pfn_outputchar output_char, void* p)
+  output_digit (unsigned char n, bool lower_case, pfn_outputchar output_char, void* p)
   {
     register unsigned char c = n + (unsigned char)'0';
 
@@ -147,10 +143,10 @@ typedef union
 
 /*--------------------------------------------------------------------------*/
 
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
   #define OUTPUT_2DIGITS( B )   { output_2digits( B, lower_case, output_char, p ); charsOutputted += 2; }
   static void
-  output_2digits (unsigned char b, BOOL lower_case, pfn_outputchar output_char, void* p)
+  output_2digits (unsigned char b, bool lower_case, pfn_outputchar output_char, void* p)
   {
     output_digit( b>>4,   lower_case, output_char, p );
     output_digit( b&0x0F, lower_case, output_char, p );
@@ -167,7 +163,7 @@ typedef union
 
 /*--------------------------------------------------------------------------*/
 
-#if defined SDCC_STACK_AUTO
+#if defined __SDCC_STACK_AUTO
 static void
 calculate_digit (value_t _AUTOMEM * value, unsigned char radix)
 {
@@ -225,16 +221,16 @@ calculate_digit (unsigned char radix)
 
 #define DEFAULT_FLOAT_PRECISION 6
 
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
 #define OUTPUT_FLOAT(F, W, D, L, Z, S, P)       output_float(F, W, D, L, Z, S, P, output_char, p)
 static unsigned char
 output_float (float f, unsigned char reqWidth,
               signed char reqDecimals,
-              BOOL left, BOOL zero, BOOL sign, BOOL space,
+              bool left, bool zero, bool sign, bool space,
               pfn_outputchar output_char, void* p)
 {
   unsigned char charsOutputted = 0;
- #if defined (SDCC_mcs51)
+ #if defined (__SDCC_mcs51)
   char fpBuffer[16];      //mcs51 has only a small stack
  #else
   char fpBuffer[128];
@@ -244,11 +240,11 @@ output_float (float f, unsigned char reqWidth,
 static void
 output_float (float f, unsigned char reqWidth,
               signed char reqDecimals,
-              BOOL left, BOOL zero, BOOL sign, BOOL space)
+              bool left, bool zero, bool sign, bool space)
 {
   __xdata char fpBuffer[128];
-#endif //SDCC_STACK_AUTO
-  BOOL negative = 0;
+#endif //__SDCC_STACK_AUTO
+  bool negative = 0;
   unsigned long integerPart;
   float rounding;
   float decimalPart;
@@ -426,31 +422,31 @@ output_float (float f, unsigned char reqWidth,
     OUTPUT_CHAR ('0'+exp/10, p);
     OUTPUT_CHAR ('0'+exp%10, p);
   }
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
   return charsOutputted;
 #else
   return;
-#endif //SDCC_STACK_AUTO
+#endif //__SDCC_STACK_AUTO
 }
 #endif //USE_FLOATS
 
 int
 _print_format (pfn_outputchar pfn, void* pvoid, const char *format, va_list ap)
 {
-  BOOL   left_justify;
-  BOOL   zero_padding;
-  BOOL   prefix_sign;
-  BOOL   prefix_space;
-  BOOL   signed_argument;
-  BOOL   char_argument;
-  BOOL   long_argument;
-  BOOL   float_argument;
-#ifdef SDCC_STACK_AUTO
-  BOOL   lower_case;
+  bool   left_justify;
+  bool   zero_padding;
+  bool   prefix_sign;
+  bool   prefix_space;
+  bool   signed_argument;
+  bool   char_argument;
+  bool   long_argument;
+  bool   float_argument;
+#ifdef __SDCC_STACK_AUTO
+  bool   lower_case;
   value_t value;
   int charsOutputted;
 #endif
-  BOOL   lsd;
+  bool   lsd;
 
   unsigned char radix;
   unsigned char  width;
@@ -458,7 +454,7 @@ _print_format (pfn_outputchar pfn, void* pvoid, const char *format, va_list ap)
   unsigned char  length;
   char           c;
 
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
   #define output_char   pfn
   #define p             pvoid
 #else
@@ -469,7 +465,7 @@ _print_format (pfn_outputchar pfn, void* pvoid, const char *format, va_list ap)
   // reset output chars
   charsOutputted = 0;
 
-#ifdef SDCC_ds390
+#ifdef __SDCC_ds390
   if (format==0)
   {
     format=NULL_STRING;
@@ -572,7 +568,7 @@ get_conversion_spec:
       case 'S':
         PTR = va_arg(ap,ptr_t);
 
-#ifdef SDCC_ds390
+#ifdef __SDCC_ds390
         if (PTR==0)
         {
           PTR=NULL_STRING;
@@ -617,7 +613,7 @@ get_conversion_spec:
       case 'P':
         PTR = va_arg(ap,ptr_t);
 
-#if defined (SDCC_ds390)
+#if defined (__SDCC_ds390)
         {
           unsigned char memtype = value.byte[3];
           if (memtype >= 0x80)
@@ -636,7 +632,7 @@ get_conversion_spec:
         OUTPUT_2DIGITS( value.byte[2] );
         OUTPUT_2DIGITS( value.byte[1] );
         OUTPUT_2DIGITS( value.byte[0] );
-#elif defined (SDCC_mcs51)
+#elif defined (__SDCC_mcs51)
         {
           unsigned char memtype = value.byte[2];
           if (memtype >= 0x80)
@@ -710,13 +706,13 @@ get_conversion_spec:
         //width=8;
 #else
         // ignore b and l conversion spec for now
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
         charsOutputted += OUTPUT_FLOAT(value.f, width, decimals, left_justify,
                                      zero_padding, prefix_sign, prefix_space);
 #else
         OUTPUT_FLOAT(value.f, width, decimals, left_justify,
                      zero_padding, prefix_sign, prefix_space);
-#endif //SDCC_STACK_AUTO
+#endif //__SDCC_STACK_AUTO
 #endif //USE_FLOATS
       }
       else if (radix != 0)
@@ -761,7 +757,7 @@ get_conversion_spec:
 
         do {
           value.byte[4] = 0;
-#if defined SDCC_STACK_AUTO
+#if defined __SDCC_STACK_AUTO
           calculate_digit(&value, radix);
 #else
           calculate_digit(radix);
@@ -850,7 +846,7 @@ get_conversion_spec:
           {
             value.byte[4] = *pstore & 0x0F;
           }
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
           output_digit( value.byte[4], lower_case, output_char, p );
           charsOutputted++;
 #else

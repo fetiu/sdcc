@@ -43,6 +43,7 @@ struct _dumpFiles dumpFiles[] = {
   {DUMP_PACK, ".dumppack", NULL},
   {DUMP_RASSGN, ".dumprassgn", NULL},
   {DUMP_LRANGE, ".dumplrange", NULL},
+  {DUMP_LOSPRE, ".dumplospre", NULL},
   {0, NULL, NULL}
 };
 
@@ -313,6 +314,7 @@ iCode2eBBlock (iCode * ic)
 
   /* put the first one unconditionally */
   ebb->sch = ic;
+  ic->seq = 0;
 
   /* if this is a label then */
   if (ic->op == LABEL)
@@ -337,9 +339,17 @@ iCode2eBBlock (iCode * ic)
   /* if this is a function call */
   if (ic->op == CALL || ic->op == PCALL)
     {
+      sym_link *type = operandType (IC_LEFT (ic));
       ebb->hasFcall = 1;
       if (currFunc)
         FUNC_HASFCALL (currFunc->type) = 1;
+      if (IS_FUNCPTR (type))
+        type = type->next;
+      if (type && FUNC_ISNORETURN (type))
+        {
+          ebb->ech = ebb->sch;
+          return ebb;
+        }
     }
 
   if ((ic->next && ic->next->op == LABEL) || !ic->next)
@@ -351,6 +361,7 @@ iCode2eBBlock (iCode * ic)
   /* loop thru till we find one with a label */
   for (loop = ic->next; loop; loop = loop->next)
     {
+      loop->seq = 0;
 
       /* if this is the last one */
       if (!loop->next)
@@ -358,9 +369,14 @@ iCode2eBBlock (iCode * ic)
       /* if this is a function call */
       if (loop->op == CALL || loop->op == PCALL)
         {
+          sym_link *type = operandType (IC_LEFT (loop));
           ebb->hasFcall = 1;
           if (currFunc)
             FUNC_HASFCALL (currFunc->type) = 1;
+          if (IS_FUNCPTR (type))
+            type = type->next;
+          if (type && FUNC_ISNORETURN (type))
+            break;
         }
 
       /* if the next one is a label */
@@ -439,6 +455,7 @@ addiCodeToeBBlock (eBBlock * ebp, iCode * ic, iCode * ip)
     {
       ic->filename = ip->filename;
       ic->lineno = ip->lineno;
+      ic->eBBlockNum = ip->eBBlockNum;
       ic->prev = ip->prev;
       ip->prev = ic;
       ic->next = ip;

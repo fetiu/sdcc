@@ -73,28 +73,28 @@ OPTYPE;
 /* typedef for operand */
 typedef struct operand
 {
-  OPTYPE type;                  /* type of operand */
-  unsigned int isaddr:1;        /* is an address   */
-  unsigned int aggr2ptr:2;      /* 1: must change aggregate to pointer to aggregate */
+  OPTYPE type;                      /* type of operand */
+  unsigned int isaddr:1;            /* is an address   */
+  unsigned int aggr2ptr:2;          /* 1: must change aggregate to pointer to aggregate */
   /* 2: aggregate has been changed to pointer to aggregate */
-  unsigned int isvolatile:1;    /* is a volatile operand */
-  unsigned int isGlobal:1;      /* is a global operand */
-  unsigned int isPtr:1;         /* is assigned a pointer */
-  unsigned int isGptr:1;        /* is a generic pointer  */
-  unsigned int isParm:1;        /* is a parameter        */
-  unsigned int isLiteral:1;     /* operand is literal    */
+  unsigned int isvolatile:1;        /* is a volatile operand */
+  unsigned int isGlobal:1;          /* is a global operand */
+  unsigned int isPtr:1;             /* is assigned a pointer */
+  unsigned int isGptr:1;            /* is a generic pointer  */
+  unsigned int isParm:1;            /* is a parameter        */
+  unsigned int isLiteral:1;         /* operand is literal    */
 
   int key;
   union
   {
-    struct symbol *symOperand;  /* operand is of type symbol */
-    struct value *valOperand;   /* operand is of type value  */
-    struct sym_link *typeOperand;       /* operand is of type typechain */
+    struct symbol *symOperand;      /* operand is of type symbol */
+    struct value *valOperand;       /* operand is of type value  */
+    struct sym_link *typeOperand;   /* operand is of type typechain */
   }
   svt;
 
-  bitVect *usesDefs;            /* which definitions are used by this */
-  struct asmop *aop;            /* asm op for this operand */
+  bitVect *usesDefs;                /* which definitions are used by this */
+  struct asmop *aop;                /* asm op for this operand */
 }
 operand;
 
@@ -117,16 +117,16 @@ extern const operand *validateOpTypeConst (const operand * op,
 #define OP_TYPE(op)          validateOpType(op, "OP_TYPE", #op, TYPE, __FILE__, __LINE__)->svt.typeOperand
 
 /* definition for intermediate code */
-#define IC_RESULT(x) (x)->ulrrcnd.lrr.result
-#define IC_LEFT(x)   (x)->ulrrcnd.lrr.left
-#define IC_RIGHT(x)  (x)->ulrrcnd.lrr.right
-#define IC_COND(x)   (x)->ulrrcnd.cnd.condition
-#define IC_TRUE(x)   (x)->ulrrcnd.cnd.trueLabel
-#define IC_FALSE(x)  (x)->ulrrcnd.cnd.falseLabel
-#define IC_LABEL(x)  (x)->label
-#define IC_JTCOND(x) (x)->ulrrcnd.jmpTab.condition
-#define IC_JTLABELS(x) (x)->ulrrcnd.jmpTab.labels
-#define IC_INLINE(x) (x)->inlineAsm
+#define IC_RESULT(x)     (x)->ulrrcnd.lrr.result
+#define IC_LEFT(x)       (x)->ulrrcnd.lrr.left
+#define IC_RIGHT(x)      (x)->ulrrcnd.lrr.right
+#define IC_COND(x)       (x)->ulrrcnd.cnd.condition
+#define IC_TRUE(x)       (x)->ulrrcnd.cnd.trueLabel
+#define IC_FALSE(x)      (x)->ulrrcnd.cnd.falseLabel
+#define IC_LABEL(x)      (x)->label
+#define IC_JTCOND(x)     (x)->ulrrcnd.jmpTab.condition
+#define IC_JTLABELS(x)   (x)->ulrrcnd.jmpTab.labels
+#define IC_INLINE(x)     (x)->inlineAsm
 #define IC_ARRAYILIST(x) (x)->arrayInitList
 
 typedef struct iCode
@@ -185,7 +185,7 @@ typedef struct iCode
 
   symbol *label;                /* for a goto statement     */
 
-  char *inlineAsm;              /* pointer to inline assembler code */
+  const char *inlineAsm;        /* pointer to inline assembler code */
   literalList *arrayInitList;   /* point to array initializer list. */
 
   int lineno;                   /* file & lineno for debug information */
@@ -303,17 +303,17 @@ iCodeTable;
 /*-----------------------------------------------------------------*/
 iCode *reverseiCChain ();
 bool isOperandOnStack (operand *);
-int isOperandVolatile (operand *, bool);
-int isOperandGlobal (operand *);
+int isOperandVolatile (const operand *, bool);
+int isOperandGlobal (const operand *);
 void printiCChain (iCode *, FILE *);
 operand *ast2iCode (ast *, int);
 operand *geniCodePtrPtrSubtract (operand *, operand *);
 void initiCode ();
 iCode *iCodeFromAst (ast *);
 int isiCodeEqual (iCode *, iCode *);
-int isOperandEqual (operand *, operand *);
+int isOperandEqual (const operand *, const operand *);
 iCodeTable *getTableEntry (int);
-int isOperandLiteral (operand *);
+int isOperandLiteral (const operand * const);
 operand *operandOperation (operand *, operand *, int, sym_link *);
 double operandLitValue (operand *);
 operand *operandFromLit (double);
@@ -340,6 +340,7 @@ void setOperandType (operand *, sym_link *);
 bool isOperandInFarSpace (operand *);
 bool isOperandInPagedSpace (operand *);
 bool isOperandInDirSpace (operand *);
+bool isOperandInBitSpace (operand *);
 bool isOperandInCodeSpace (operand *);
 operand *opFromOpWithDU (operand *, bitVect *, bitVect *);
 iCode *copyiCode (iCode *);
@@ -353,3 +354,4 @@ int isiCodeInFunctionCall (iCode *);
 extern char *filename;
 extern int lineno;
 #endif
+

@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -36,20 +36,20 @@
      mcs51 large
 */
 
-#if !defined(SDCC_USE_XSTACK) && !defined(_SDCC_NO_ASM_LIB_FUNCS)
-#  if defined(SDCC_ds390)
-#    if !defined(SDCC_STACK_AUTO)
+#if !defined(__SDCC_USE_XSTACK) && !defined(_SDCC_NO_ASM_LIB_FUNCS)
+#  if defined(__SDCC_ds390)
+#    if !defined(__SDCC_STACK_AUTO)
 #      define _MULINT_ASM_LARGE
 #    endif
-#  elif defined(SDCC_mcs51)
-#    if defined(SDCC_MODEL_SMALL)
-#      if defined(SDCC_STACK_AUTO) && !defined(SDCC_PARMS_IN_BANK1)
+#  elif defined(__SDCC_mcs51)
+#    if defined(__SDCC_MODEL_SMALL)
+#      if defined(__SDCC_STACK_AUTO) && !defined(SDCC_PARMS_IN_BANK1)
 #        define _MULINT_ASM_SMALL_AUTO
 #      else
 #        define _MULINT_ASM_SMALL
 #      endif
 #    else // must be SDCC_MODEL_LARGE
-#      if !defined(SDCC_STACK_AUTO)
+#      if !defined(__SDCC_STACK_AUTO)
 #        define _MULINT_ASM_LARGE
 #     endif
 #   endif
@@ -126,9 +126,9 @@ __mulint:
 
 	.globl __mulint
 
-#if !defined(SDCC_STACK_AUTO) || defined(SDCC_PARMS_IN_BANK1)
+#if !defined(__SDCC_STACK_AUTO) || defined(SDCC_PARMS_IN_BANK1)
 
-#if defined(SDCC_NOOVERLAY)
+#if defined(__SDCC_NOOVERLAY)
 	.area DSEG    (DATA)
 #else
 	.area OSEG    (OVR,DATA)
@@ -208,15 +208,24 @@ __mulint_PARM_2:
 
 #else
 
+#if defined(__SDCC_hc08) || defined(__SDCC_s08) || defined(__SDCC_stm8)
+// Big-endian
+union uu {
+	struct { unsigned char hi, lo ;} s;
+        unsigned int t;
+};
+#else
+// Little-endian
 union uu {
 	struct { unsigned char lo,hi ;} s;
         unsigned int t;
-} ;
+};
+#endif
 
 int
 _mulint (int a, int b)
 {
-#if !defined(SDCC_STACK_AUTO) && (defined(SDCC_MODEL_LARGE) || defined(SDCC_ds390))	// still needed for large
+#if !defined(__SDCC_STACK_AUTO) && (defined(__SDCC_MODEL_LARGE) || defined(__SDCC_ds390))	// still needed for large
 	union uu __xdata *x;
 	union uu __xdata *y;
 	union uu t;
@@ -230,12 +239,14 @@ _mulint (int a, int b)
         y = (union uu *)&b;
 #endif
 
-        t.t = x->s.lo * y->s.lo;
-        t.s.hi += (x->s.lo * y->s.hi) + (x->s.hi * y->s.lo);
+  // sdcc is bad at handling union accesses. So we use (unsigned char)a instead of x->s.lo here.
+  t.t = (unsigned char)a * (unsigned char)b;
+  t.s.hi += ((unsigned char)a * y->s.hi) + (x->s.hi * (unsigned char)b);
 
-       return t.t;
+  return t.t;
 }
 
 #endif
 
 #undef _MULINT_ASM
+

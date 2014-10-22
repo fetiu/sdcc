@@ -66,7 +66,7 @@ typedef struct ast
   /* union for special processing */
   union
   {
-    char *inlineasm;            /* pointer to inline assembler code */
+    const char *inlineasm;      /* pointer to inline assembler code */
     literalList *constlist;     /* init list for array initializer. */
     symbol *sym;                /* if block then -> symbols */
     value *args;                /* if function then args    */
@@ -97,6 +97,7 @@ typedef struct ast
                                          * type resulting from a typecast.
                                          */
       unsigned removedCast:1;   /* true if the explicit cast has been removed */
+      unsigned implicitCast:1;  /* true if compiler added this cast */
     } cast;
     int argreg;                 /* argreg number when operand type == EX_OPERAND */
   }
@@ -196,9 +197,11 @@ ast *removeIncDecOps (ast *);
 ast *removePreIncDecOps (ast *);
 ast *removePostIncDecOps (ast *);
 value *sizeofOp (sym_link *);
+value *alignofOp (sym_link *);
 ast *offsetofOp (sym_link * type, ast * snd);
 value *evalStmnt (ast *);
 ast *createRMW (ast *, unsigned, ast *);
+symbol * createFunctionDecl (symbol *);
 ast *createFunction (symbol *, ast *);
 ast *createBlock (symbol *, ast *);
 ast *createLabel (symbol *, ast *);
@@ -213,13 +216,13 @@ ast *decorateType (ast *, RESULT_TYPE);
 ast *createWhile (symbol *, symbol *, symbol *, ast *, ast *);
 ast *createIf (ast *, ast *, ast *);
 ast *createDo (symbol *, symbol *, symbol *, ast *, ast *);
-ast *createFor (symbol *, symbol *, symbol *, symbol *, ast *, ast *, ast *, ast *);
+ast *createFor (symbol *, symbol *, symbol *, symbol *, ast *, ast *, ast *, ast *, ast *);
 void eval2icode (ast *);
 value *constExprValue (ast *, int);
 bool constExprTree (ast *);
 int setAstFileLine (ast *, char *, int);
 symbol *funcOfType (const char *, sym_link *, sym_link *, int, int);
-symbol *funcOfTypeVarg (char *, char *, int, char **);
+symbol *funcOfTypeVarg (const char *, const char *, int, const char **);
 ast *initAggregates (symbol *, initList *, ast *);
 bool hasSEFcalls (ast *);
 void addSymToBlock (symbol *, ast *);

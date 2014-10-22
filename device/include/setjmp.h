@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -26,18 +26,18 @@
    might be covered by the GNU General Public License.
 -------------------------------------------------------------------------*/
 
-#ifndef SDCC_SETJMP_H
-#define SDCC_SETJMP_H
+#ifndef __SDCC_SETJMP_H
+#define __SDCC_SETJMP_H
 
 #define SP_SIZE		1
 
-#ifdef SDCC_STACK_AUTO
+#ifdef __SDCC_STACK_AUTO
 #define BP_SIZE		SP_SIZE
 #else
 #define BP_SIZE		0
 #endif
 
-#ifdef SDCC_USE_XSTACK
+#ifdef __SDCC_USE_XSTACK
 #define SPX_SIZE	1
 #else
 #define SPX_SIZE	0
@@ -45,14 +45,16 @@
 
 #define BPX_SIZE	SPX_SIZE
 
-#ifdef SDCC_MODEL_HUGE
+#ifdef __SDCC_MODEL_HUGE
 #define RET_SIZE	3
 #else
 #define RET_SIZE	2
 #endif
 
-#ifdef SDCC_z80
+#if defined (__SDCC_z80) || defined (__SDCC_z180) || defined (__SDCC_r2k) || defined (__SDCC_r3ka)
 typedef unsigned char jmp_buf[6]; // 2 for the stack pointer, 2 for the return address, 2 for the frame pointer.
+#elif defined (__SDCC_stm8)
+typedef unsigned char jmp_buf[4]; // 2 for the stack pointer, 2 for the return address.
 #else
 typedef unsigned char jmp_buf[RET_SIZE + SP_SIZE + BP_SIZE + SPX_SIZE + BPX_SIZE];
 #endif
@@ -60,9 +62,12 @@ typedef unsigned char jmp_buf[RET_SIZE + SP_SIZE + BP_SIZE + SPX_SIZE + BPX_SIZE
 int __setjmp (jmp_buf);
 
 // C99 might require setjmp to be a macro. The standard seems self-contradicting on this issue.
+// However, it is clear that the standards allow setjmp to be a macro.
 #define setjmp(jump_buf) __setjmp(jump_buf)
 
-int longjmp(jmp_buf, int);
+#ifndef __SDCC_HIDE_LONGJMP
+_Noreturn void longjmp(jmp_buf, int);
+#endif
 
 #undef RET_SIZE
 #undef SP_SIZE

@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -55,27 +55,6 @@ unsigned char _sdcc_external_startup(void)
   // move CANx memory access to 0x401000 and upwards
   // use !CE* for program and/or data memory access
   TIMED_ACCESS(MCON,0xaf);
-
-  __asm
-    ; save the 24-bit return address
-;    pop ar2; msb
-    mov r2, #0x00
-    pop ar1
-    pop ar0; lsb
-
-
-    mov _TA,#0xaa; timed access
-    mov _TA,#0x55
-    mov _ACON,#0x06; 24 bit addresses, 10 bit stack at 0x400000
-
-    mov _ESP,#0x00; reinitialize the stack
-    mov _SP,#0x00
-
-    ; restore the 24-bit return address
-    push ar0; lsb
-    push ar1
-    push ar2; msb
-  __endasm;
 
   // select default cpu speed
   CpuSpeed(CPU_SPEED);
@@ -507,8 +486,8 @@ void ClockInit()
 #if 0
 void junk_ClockIrqHandler (void) __interrupt 10
 {
-  TL0=timer0ReloadValue&0xff;
-  TH0=timer0ReloadValue>>8;
+  TL0 = timer0ReloadValue & 0xff;
+  TH0 = timer0ReloadValue >> 8;
   milliSeconds++;
 }
 #else

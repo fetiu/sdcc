@@ -6,7 +6,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -14,7 +14,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -29,7 +29,7 @@
 
 #include <string.h>
 
-#if (!defined (SDCC_mcs51))
+#if (!defined (__SDCC_mcs51))
 
   /* Generic routine first */
   size_t strlen ( const char * str )
@@ -44,7 +44,7 @@
 
 #else
 
-#if defined(SDCC)
+#if defined(__SDCC)
  #include <sdcc-lib.h>
 #endif
 

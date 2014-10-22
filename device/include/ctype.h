@@ -1,22 +1,18 @@
 /*-------------------------------------------------------------------------
-   ctype.h - ANSI functions forward declarations
+   ctype.h
 
-   Copyright (C) 1998, Sandeep Dutta . sandeep.dutta@usa.net
+   Philipp Klaus Krause, philipp@informatik.uni-frankfurt.de 2013
 
-   Revisions:
-   1.0 - June.1.2000 1.0 - Bela Torok / bela.torok@kssg.ch
-   order: function definitions -> macros
-   corretced macro: isalpha(c)
-   added macros: _tolower(c), _toupper(c), tolower(c), toupper(c) toascii(c)
+   (c) 2013 Goethe-Universität Frankfurt
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License 
@@ -32,36 +28,49 @@
    might be covered by the GNU General Public License.
 -------------------------------------------------------------------------*/
 
-#ifndef __SDC51_CTYPE_H
-#define __SDC51_CTYPE_H 1
+#ifndef __SDCC_CTYPE_H
+#define __SDCC_CTYPE_H 1
 
-#include <sdcc-lib.h>
+extern int isalnum (int c);
+extern int isalpha (int c);
+extern int iscntrl (int c);
+extern int isgraph (int c);
+extern int isprint (int c);
+extern int ispunct (int c);
+extern int isspace (int c);
+extern int isalnum (int c);
+extern int isalnum (int c);
+extern int isxdigit (int c);
 
-extern char  iscntrl   (unsigned char )  ;
-extern char  isdigit   (unsigned char )  ;
-extern char  isgraph   (unsigned char )  ;
-extern char  islower   (unsigned char )  ;
-extern char  isupper   (unsigned char )  ;
-extern char  isprint   (unsigned char )  ;
-extern char  ispunct   (unsigned char )  ;
-extern char  isspace   (unsigned char )  ;
-extern char  isxdigit  (unsigned char )  ;
+extern int tolower (int c);
+extern int toupper (int c);
 
-#define isalnum(c)   (isalpha(c) || isdigit(c))
-#define isalpha(c)   (isupper(c) || islower(c))
+/* Provide inline versions for the most used functions for efficiency */
+#if __STDC_VERSION__ >= 199901L
 
-/* ANSI versions of _tolower & _toupper
-#define _tolower(c)  ((c) - ('a' - 'A'))
-#define _toupper(c)  ((c) + ('a' - 'A'))
-*/
+extern int isblank (int c);
 
-/* The _tolower & _toupper functions below can applied to any
-   alpha characters regardless of the case (upper or lower) */
-#define _tolower(c)  (char)(((c) |  (char)('a' - 'A')))
-#define _toupper(c)  (char)(((c) & ~(char)('a' - 'A')))
+inline int isdigit (int c)
+{
+  return (c >= '0' && c <= '9');
+}
 
-#define tolower(c)  ((isupper(c)) ? _tolower(c) : (c))
-#define toupper(c)  ((islower(c)) ? _toupper(c) : (c))
-#define toascii(c)  ((c) & 0x7F)
+inline int islower (int c)
+{
+  return (c >= 'a' && c <= 'z');
+}
+
+inline int isupper (int c)
+{
+  return (c >= 'A' && c <= 'Z');
+}
+
+#else
+
+extern int isdigit (int c);
+extern int islower (int c);
+extern int isupper (int c);
+
+#endif
 
 #endif

@@ -46,7 +46,7 @@ newSet (void)
 /*              elements in new list is reverted                   */
 /*-----------------------------------------------------------------*/
 set *
-setFromSet (set * lp)
+setFromSet (const set *lp)
 {
   set *lfl = NULL;
 
@@ -64,7 +64,7 @@ setFromSet (set * lp)
 /*              elements in retained                               */
 /*-----------------------------------------------------------------*/
 set *
-setFromSetNonRev (set * lp)
+setFromSetNonRev (const set *lp)
 {
   set *lfl = NULL;
 
@@ -82,9 +82,9 @@ setFromSetNonRev (set * lp)
 /*               the same objects & the same number of objects     */
 /*-----------------------------------------------------------------*/
 int
-isSetsEqual (set * dest, set * src)
+isSetsEqual (const set *dest, const set *src)
 {
-  set *src1 = src;
+  const set *src1 = src;
 
   for (; dest && src; dest = dest->next, src = src->next)
     {
@@ -154,6 +154,9 @@ addSet (set ** list, void *item)
 {
   set *lp;
 
+  if (!list)
+    werror (E_INTERNAL_ERROR,__FILE__,__LINE__, "Invalid set.");
+
   /* item added to the tail of the list */
 
   /* if the list is empty */
@@ -167,6 +170,8 @@ addSet (set ** list, void *item)
       for (lp = *list; lp->next; lp = lp->next);
       lp = lp->next = newSet ();
     }
+  if (!list)
+    werror (E_OUT_OF_MEM,__FILE__,__LINE__, "Can't add to set.");
 
   /* lp now all set */
   lp->item = item;
@@ -244,9 +249,9 @@ deleteSetItem (set ** list, void *item)
 /* isinSet - the item is present in the linked list                */
 /*-----------------------------------------------------------------*/
 int
-isinSet (set * list, void *item)
+isinSet (const set *list, const void *item)
 {
-  set *lp;
+  const set *lp;
 
   for (lp = list; lp; lp = lp->next)
     if (lp->item == item)
@@ -426,9 +431,9 @@ intersectSetsWith (set * list1, set * list2,
 /* elementsInSet - elements count of a set                         */
 /*-----------------------------------------------------------------*/
 int
-elementsInSet (set * s)
+elementsInSet (const set * s)
 {
-  set *loop = s;
+  const set *loop = s;
   int count = 0;
 
   while (loop)
@@ -556,7 +561,7 @@ applyToSetFTrue (set * list, int (*somefunc) (void *, va_list),...)
 /* peekSet - will return the first element of the set              */
 /*-----------------------------------------------------------------*/
 void *
-peekSet (set * sp)
+peekSet (const set *sp)
 {
   if (!sp)
     return NULL;
@@ -568,7 +573,7 @@ peekSet (set * sp)
 /* setFirstItem - gets the first item in the set, begins iteration */
 /*-----------------------------------------------------------------*/
 void *
-setFirstItem (set * sset)
+setFirstItem (set *sset)
 {
   if (sset)
     {

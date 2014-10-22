@@ -3,8 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual C++ Express 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "all", "all.vcxproj", "{5339F39B-0A44-4248-972C-F8833B0F5537}"
 	ProjectSection(ProjectDependencies) = postProject
-		{58C6355B-ED8A-4F0D-8911-D8A77E7E2096} = {58C6355B-ED8A-4F0D-8911-D8A77E7E2096}
+		{13410A29-B3A6-4F10-8345-39D5293F3D9A} = {13410A29-B3A6-4F10-8345-39D5293F3D9A}
 		{B823D5B9-6B5A-4CC8-AF07-DDFE8C8E3488} = {B823D5B9-6B5A-4CC8-AF07-DDFE8C8E3488}
+		{F47A26F0-2D57-4A1F-86CF-6E3F82D3E877} = {F47A26F0-2D57-4A1F-86CF-6E3F82D3E877}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdas6808", "sdas\as6808\as_hc08.vcxproj", "{C81F84D7-F847-4100-969F-0791A95D2E4C}"
@@ -20,8 +21,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdasgb", "sdas\asgb\asgb.vc
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdld", "sdas\linksrc\aslink.vcxproj", "{6E94DB45-345E-4697-98DA-6C72237D6ECA}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdranlib", "support\sdranlib\sdranlib.vcxproj", "{58C6355B-ED8A-4F0D-8911-D8A77E7E2096}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdas8051", "sdas\as8051\asx8051.vcxproj", "{C14982C0-731B-46A0-9DD2-845E3811CF18}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -60,7 +59,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pic16", "src\pic16\pic16.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdcpp", "support\cpp\sdcpp.vcxproj", "{57BCB0F8-EF4A-4688-9B36-55A8F6DC93BF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "src", "src\src.vcxproj", "{F9485499-151B-4886-935C-7D687C4A0549}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdcc", "src\sdcc.vcxproj", "{F9485499-151B-4886-935C-7D687C4A0549}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0BA12B9F-BCD6-4C08-9992-69B4FB32D335} = {0BA12B9F-BCD6-4C08-9992-69B4FB32D335}
+		{EA40C4BB-7537-4422-AE03-629A05F3D4C5} = {EA40C4BB-7537-4422-AE03-629A05F3D4C5}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "z80", "src\z80\z80.vcxproj", "{7444A72F-C7C6-4F90-9A62-2D46240B52DB}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -74,10 +77,23 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pic14", "src\pic14\pic14.vc
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdcdb", "debugger\mcs51\sdcdb.vcxproj", "{76B78C5A-6B31-4BA1-9226-F1409B48F839}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2F87BA6F-8EE1-48D0-9817-6BA30BDDB3C1} = {2F87BA6F-8EE1-48D0-9817-6BA30BDDB3C1}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "yacc", "src\yacc.vcxproj", "{EA40C4BB-7537-4422-AE03-629A05F3D4C5}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "asrab", "sdas\asrab\asrab.vcxproj", "{F47A26F0-2D57-4A1F-86CF-6E3F82D3E877}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdasrab", "sdas\asrab\asrab.vcxproj", "{F47A26F0-2D57-4A1F-86CF-6E3F82D3E877}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sdas390", "sdas\as8xcxxx\sdas390.vcxproj", "{13410A29-B3A6-4F10-8345-39D5293F3D9A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2F87BA6F-8EE1-48D0-9817-6BA30BDDB3C1} = {2F87BA6F-8EE1-48D0-9817-6BA30BDDB3C1}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stm8", "src\stm8\stm8.vcxproj", "{0BA12B9F-BCD6-4C08-9992-69B4FB32D335}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2F87BA6F-8EE1-48D0-9817-6BA30BDDB3C1} = {2F87BA6F-8EE1-48D0-9817-6BA30BDDB3C1}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -105,10 +121,6 @@ Global
 		{6E94DB45-345E-4697-98DA-6C72237D6ECA}.Debug|Win32.Build.0 = Debug|Win32
 		{6E94DB45-345E-4697-98DA-6C72237D6ECA}.Release|Win32.ActiveCfg = Release|Win32
 		{6E94DB45-345E-4697-98DA-6C72237D6ECA}.Release|Win32.Build.0 = Release|Win32
-		{58C6355B-ED8A-4F0D-8911-D8A77E7E2096}.Debug|Win32.ActiveCfg = Debug|Win32
-		{58C6355B-ED8A-4F0D-8911-D8A77E7E2096}.Debug|Win32.Build.0 = Debug|Win32
-		{58C6355B-ED8A-4F0D-8911-D8A77E7E2096}.Release|Win32.ActiveCfg = Release|Win32
-		{58C6355B-ED8A-4F0D-8911-D8A77E7E2096}.Release|Win32.Build.0 = Release|Win32
 		{C14982C0-731B-46A0-9DD2-845E3811CF18}.Debug|Win32.ActiveCfg = Debug|Win32
 		{C14982C0-731B-46A0-9DD2-845E3811CF18}.Debug|Win32.Build.0 = Debug|Win32
 		{C14982C0-731B-46A0-9DD2-845E3811CF18}.Release|Win32.ActiveCfg = Release|Win32
@@ -173,6 +185,14 @@ Global
 		{F47A26F0-2D57-4A1F-86CF-6E3F82D3E877}.Debug|Win32.Build.0 = Debug|Win32
 		{F47A26F0-2D57-4A1F-86CF-6E3F82D3E877}.Release|Win32.ActiveCfg = Release|Win32
 		{F47A26F0-2D57-4A1F-86CF-6E3F82D3E877}.Release|Win32.Build.0 = Release|Win32
+		{13410A29-B3A6-4F10-8345-39D5293F3D9A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{13410A29-B3A6-4F10-8345-39D5293F3D9A}.Debug|Win32.Build.0 = Debug|Win32
+		{13410A29-B3A6-4F10-8345-39D5293F3D9A}.Release|Win32.ActiveCfg = Release|Win32
+		{13410A29-B3A6-4F10-8345-39D5293F3D9A}.Release|Win32.Build.0 = Release|Win32
+		{0BA12B9F-BCD6-4C08-9992-69B4FB32D335}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0BA12B9F-BCD6-4C08-9992-69B4FB32D335}.Debug|Win32.Build.0 = Debug|Win32
+		{0BA12B9F-BCD6-4C08-9992-69B4FB32D335}.Release|Win32.ActiveCfg = Release|Win32
+		{0BA12B9F-BCD6-4C08-9992-69B4FB32D335}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

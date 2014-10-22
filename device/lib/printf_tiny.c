@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -64,13 +64,13 @@
 #define print_zero_flag PSW.5
 
 
-#if !defined(SDCC_mcs51) || defined(SDCC_USE_XSTACK) || defined(_SDCC_NO_ASM_LIB_FUNCS)
+#if !defined(__SDCC_mcs51) || defined(__SDCC_USE_XSTACK) || defined(_SDCC_NO_ASM_LIB_FUNCS)
 /* Does printf_tiny really work on ds390 and ds400?
    If it does, enable them in the line above */
 #if defined(_SDCC_BUILD_LIB)
 /* Disable all warnings if building a library */
 #pragma disable_warning 190
-#elif defined(SDCC_USE_XSTACK)
+#elif defined(__SDCC_USE_XSTACK)
 #warning "printf_tiny not built, does not support --xstack"
 #elif defined(_SDCC_NO_ASM_LIB_FUNCS)
 #warning "printf_tiny not built, _SDCC_NO_ASM_LIB_FUNCS defined"

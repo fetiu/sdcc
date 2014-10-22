@@ -5,11 +5,11 @@
 #include <stdarg.h>
 #endif
 
-#ifdef SDCC_ds390
+#ifdef __SDCC_ds390
 #include <tinibios.h> /* main() must see the ISR declarations */
 #endif
 
-#ifdef SDCC_mcs51
+#ifdef __SDCC_mcs51
 /* until changed, isr's must have a prototype in the module containing main */
 void T2_isr (void) __interrupt 5;
 #define MEMSPACE_BUF __idata
@@ -147,7 +147,7 @@ __printf (const char *szFormat, ...)
 }
 
 void
-__fail (code const char *szMsg, code const char *szCond, code const char *szFile, int line)
+__fail (__code const char *szMsg, __code const char *szCond, __code const char *szFile, int line)
 {
   __printf("--- FAIL: \"%s\" on %s at %s:%u\n", szMsg, szCond, szFile, line);
   __numFailures++;

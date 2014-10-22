@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -13,7 +13,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -27,14 +27,10 @@
 -------------------------------------------------------------------------*/
 
 
-#define SDCC_FLOAT_LIB
+#define __SDCC_FLOAT_LIB
 #include <float.h>
 #include <stdbool.h>
 #include <sdcc-lib.h>
-
-#ifndef BOOL
-#define BOOL _Bool
-#endif
 
 #ifdef FLOAT_ASM_MCS51
 
@@ -44,8 +40,8 @@ static void dummy(void) __naked
 	__asm
 
 	// extract the two inputs, placing them into:
-	//      sign     exponent   mantiassa
-	//      ----     --------   ---------
+	//      sign     exponent   mantissa
+	//      ----     --------   --------
 	//  a:  sign_a   exp_a      r4/r3/r2
 	//  b:  sign_b   exp_b      r7/r6/r5
 	//
@@ -177,7 +173,7 @@ float __fsadd (float a1, float a2)
   long _AUTOMEM *pfl1;
   long _AUTOMEM *pfl2;
   int exp1, exp2, expd;
-  BOOL sign = false;
+  bool sign = false;
 
   pfl2 = (long _AUTOMEM *)&a2;
   exp2 = EXP (*pfl2);

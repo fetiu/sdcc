@@ -12,6 +12,7 @@ char s[12 + 1];
 void
 test_sprintf (void)
 {
+#ifndef __SDCC_pic16
   s[12] = 0x12;
 
   sprintf (s, "%d", 99);
@@ -37,7 +38,7 @@ test_sprintf (void)
   sprintf (s, "%-3.3s", "ab");
   ASSERT (0 == strcmp (s, "ab "));
 
-#if defined(SDCC_ds390) || defined(PORT_HOST)
+#if defined(__SDCC_ds390) || defined(PORT_HOST)
   //and from bug 1358192
   sprintf (s, "%f", 10.1);
   LOG ((s));
@@ -53,4 +54,6 @@ test_sprintf (void)
 #endif
 
   ASSERT (s[12] == 0x12);
+#endif
 }
+

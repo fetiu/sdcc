@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -26,7 +26,7 @@
    might be covered by the GNU General Public License.
 -------------------------------------------------------------------------*/
 
-#if defined(SDCC_mcs51)
+#if defined(__SDCC_mcs51)
   __data unsigned char bpx ;
 #else
   __data unsigned int bpx ;

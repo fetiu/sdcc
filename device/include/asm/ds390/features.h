@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -42,15 +42,15 @@
      char _AUTOMEM * pAr = Ar;
    }
 */
-#if defined(SDCC_STACK_AUTO)
-  #if defined(SDCC_USE_XSTACK)
+#if defined(__SDCC_STACK_AUTO)
+  #if defined(__SDCC_USE_XSTACK)
     #define _AUTOMEM __pdata
-  #elif defined(SDCC_STACK_TENBIT)
+  #elif defined(__SDCC_STACK_TENBIT)
     #define _AUTOMEM __xdata
   #else
     #define _AUTOMEM __idata
   #endif
-#elif defined(SDCC_MODEL_SMALL)
+#elif defined(__SDCC_MODEL_SMALL)
   #define _AUTOMEM __data
 #else
   #define _AUTOMEM __xdata
@@ -65,7 +65,7 @@
      char _STATMEM * pAr = Ar;
    }
 */
-#if defined(SDCC_MODEL_SMALL)
+#if defined(__SDCC_MODEL_SMALL)
   #define _STATMEM __data
 #else
   #define _STATMEM __xdata

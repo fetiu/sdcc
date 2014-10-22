@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -13,7 +13,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -35,10 +35,6 @@
 #include <errno.h>
 #include <stdbool.h>
 
-#ifndef BOOL
-#define BOOL _Bool
-#endif
-
 #define P0 -0.713793159E+1
 #define P1 -0.190333999E+0
 #define Q0 -0.428277109E+2
@@ -57,10 +53,10 @@
 #define WBAR 1.05
 #define YBAR 9.0 /*Works for me*/
 
-float sincoshf(const float x, const int iscosh)
+float sincoshf(float x, bool iscosh)
 {
     float y, w, z;
-	BOOL sign;
+    bool sign;
 
     if (x<0.0) { y=-x; sign=1; }
           else { y=x;  sign=0; }

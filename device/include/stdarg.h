@@ -6,7 +6,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -30,19 +30,19 @@
 #ifndef __SDC51_STDARG_H
 #define __SDC51_STDARG_H 1
 
-#if defined(__z80) || defined(__z180) || defined(__r2k) || defined(__gbz80) || defined(__hc08)
+#if defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_r2k) || defined(__SDCC_r3ka) || defined(__SDCC_tlcs90) || defined(__SDCC_gbz80) || defined(__SDCC_hc08) || defined(__SDCC_s08) || defined(__SDCC_stm8)
 
 typedef unsigned char * va_list;
 #define va_start(marker, last)  { marker = (va_list)&last + sizeof(last); }
 #define va_arg(marker, type)    *((type *)((marker += sizeof(type)) - sizeof(type)))
 
-#elif defined(__ds390) || defined(__ds400)
+#elif defined(__SDCC_ds390) || defined(__SDCC_ds400)
 
 typedef unsigned char * va_list;
 #define va_start(marker, first) { marker = (va_list)&first; }
 #define va_arg(marker, type)    *((type *)(marker -= sizeof(type)))
 
-#elif defined(SDCC_USE_XSTACK)
+#elif defined(__SDCC_USE_XSTACK)
 
 typedef unsigned char __pdata * va_list;
 #define va_start(marker, first) { marker = (va_list)&first; }
@@ -60,3 +60,4 @@ typedef unsigned char __data * va_list;
 #define va_end(marker)          { marker = (va_list) 0; };
 
 #endif
+

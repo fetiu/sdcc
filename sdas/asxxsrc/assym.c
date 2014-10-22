@@ -1,20 +1,31 @@
-/* assym.c
+/* assym.c */
 
-   Copyright (C) 1989-1995 Alan R. Baldwin
-   721 Berkeley St., Kent, Ohio 44240
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 3, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+/*
+ *  Copyright (C) 1989-2009  Alan R. Baldwin
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * Alan R. Baldwin
+ * 721 Berkeley St.
+ * Kent, Ohio  44240
+ *
+ *   With enhancements from
+ *
+ *	John L. Hartman	(JLH)
+ *	jhartman at compuserve dot com
+ */
 
 /*
  * 10-Nov-07 borutr:
@@ -30,10 +41,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *             - replace symeq() call in mlookup with strcmpi
  */
 
-#include <stdio.h>
-#include <setjmp.h>
-#include <string.h>
-#include <stdlib.h>
 #include "asxxxx.h"
 
 /*)Module       assym.c
@@ -47,7 +54,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *              int     hash()
  *              sym *   lookup()
  *              mne *   mlookup()
- *              VOID *  new()
+ *              char *  new()
  *              char *  strsto()
  *              int     symeq()
  *              VOID    syminit()
@@ -101,21 +108,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 VOID
 syminit(void)
 {
-        register struct mne  *mp;
+        struct mne  *mp;
         struct mne **mpp;
-        register struct sym  *sp;
+        struct sym  *sp;
         struct sym **spp;
-        register int h;
+        int h;
 
         mpp = &mnehash[0];
         while (mpp < &mnehash[NHASH])
                 *mpp++ = NULL;
         mp = &mne[0];
         for (;;) {
-                h = hash(mp->m_id);
+                h = hash(mp->m_id, 1);
                 mp->m_mp = mnehash[h];
                 mnehash[h] = mp;
-                if (mp->m_flag&S_END)
+                if (mp->m_flag&S_EOL)
                         break;
                 ++mp;
         }
@@ -125,10 +132,10 @@ syminit(void)
                 *spp++ = NULL;
         sp = &sym[0];
         for (;;) {
-                h = hash(sp->s_id);
+                h = hash(sp->s_id, zflag);
                 sp->s_sp = symhash[h];
                 symhash[h] = sp;
-                if (sp->s_flag&S_END)
+                if (sp->s_flag&S_EOL)
                         break;
                 ++sp;
         }
@@ -160,7 +167,7 @@ syminit(void)
 struct area *
 alookup(char *id)
 {
-        register struct area *ap;
+        struct area *ap;
 
         ap = areap;
         while (ap) {
@@ -200,16 +207,16 @@ alookup(char *id)
 struct mne *
 mlookup(char *id)
 {
-        register struct mne *mp;
-        register int h;
+        struct mne *mp;
+        int h;
 
-        h = hash(id);
+        /*
+         * JLH: case insensitive lookup always
+         */
+        h = hash(id, 1);
         mp = mnehash[h];
         while (mp) {
-                /*
-                 * JLH: case insensitive lookup always
-                 */
-                if(symeq(id, mp->m_id, 0))
+                if(symeq(id, mp->m_id, 1))
                         return (mp);
                 mp = mp->m_mp;
         }
@@ -231,13 +238,13 @@ mlookup(char *id)
  *              sym *   sp              pointer to a sym structure
  *
  *      global varaibles:
- *              sym * symhash[]         array of pointers to NHASH
+ *              sym *   symhash[]       array of pointers to NHASH
  *                                      linked symbol lists
-  *             int     zflag           enable symbol case sensitivity
-*
+ *              int     zflag           disable symbol case sensitivity
+ *
  *      functions called:
  *              int     hash()          assym.c
- *              VOID *  new()           assym.c
+ *              char *  new()           assym.c
  *              char *  strsto()        assym.c
  *              int     symeq()         assym.c
  *
@@ -247,12 +254,12 @@ mlookup(char *id)
  */
 
 struct sym *
-lookup(char *id)
+lookup(const char *id)
 {
-        register struct sym *sp;
-        register int h;
+        struct sym *sp;
+        int h;
 
-        h = hash(id);
+        h = hash(id, zflag);
         sp = symhash[h];
         while (sp) {
                 if(symeq(id, sp->s_id, zflag))
@@ -275,8 +282,9 @@ lookup(char *id)
 /*)Function     VOID    symglob()
  *
  *      The function symglob() will mark all symbols of
- *      type S_NEW as global.  Called at the beginning of pass 1
- *      if the assembly option -g was specified.
+ *      type S_NEW as global.  Called at
+ *      the beginning of pass 1 if the assembly
+ *      option -g was specified.
  *
  *      local variables:
  *              sym *   sp              pointer to a sym structure
@@ -296,8 +304,8 @@ lookup(char *id)
 VOID
 symglob(void)
 {
-        register struct sym *sp;
-        register int i;
+        struct sym *sp;
+        int i;
 
         for (i=0; i<NHASH; ++i) {
                 sp = symhash[i];
@@ -312,8 +320,9 @@ symglob(void)
 /*)Function     VOID    allglob()
  *
  *      The function allglob() will mark all symbols of
- *      type S_USER as global.  Called at the beginning of pass 1
- *      if the assembly option -a was specified.
+ *      type S_USER as global.  Called at
+ *      the beginning of pass 1 if the assembly
+ *      option -a was specified.
  *
  *      local variables:
  *              sym *   sp              pointer to a sym structure
@@ -333,8 +342,8 @@ symglob(void)
 VOID
 allglob(void)
 {
-        register struct sym *sp;
-        register int i;
+        struct sym *sp;
+        int i;
 
         for (i=0; i<NHASH; ++i) {
                 sp = symhash[i];
@@ -346,17 +355,17 @@ allglob(void)
         }
 }
 
-/*)Function     int     symeq(p1, p2, cflag)
+/*)Function     int     symeq(p1, p2, flag)
  *
- *              int     cflag           case sensitive flag
+ *              int     flag            case sensitive flag
  *              char *  p1              name string
  *              char *  p2              name string
  *
  *      The function symeq() compares the two name strings for a match.
  *      The return value is 1 for a match and 0 for no match.
  *
- *              cflag == 0      case insensitve compare
- *              cflag != 0      case sensitive compare
+ *              flag == 0      case sensitive compare
+ *              flag != 0      case insensitive compare
  *
  *      local variables:
  *              int     n               loop counter
@@ -374,14 +383,20 @@ allglob(void)
  */
 
 int
-symeq(p1, p2, cflag)
-register char *p1, *p2;
-int cflag;
+symeq(const char *p1, const char *p2, int flag)
 {
-        register size_t n;
+        size_t n;
 
         n = strlen(p1) + 1;
-        if(cflag) {
+        if(flag) {
+                /*
+                 * Case Insensitive Compare
+                 */
+                do {
+                        if (ccase[*p1++ & 0x007F] != ccase[*p2++ & 0x007F])
+                                return (0);
+                } while (--n);
+        } else {
                 /*
                  * Case Sensitive Compare
                  */
@@ -389,27 +404,23 @@ int cflag;
                         if (*p1++ != *p2++)
                                 return (0);
                 } while (--n);
-        } else {
-                /*
-                 * Case Insensitive Compare
-                 */
-                do {
-                        if (ccase[*p1++ & 0x007F] != ccase[*p2++ & 0x007F])                             return (0);
-                } while (--n);
         }
         return (1);
 }
 
-/*)Function     int     hash(p)
+/*)Function     int     hash(p, flag)
  *
  *              char *  p               pointer to string to hash
+ *              int     flag            case sensitive flag
  *
  *      The function hash() computes a hash code using the sum
  *      of all characters mod table size algorithm.
  *
+ *              flag == 0       case insensitve hash
+ *              flag != 0       case sensitive hash
+ *
  *      local variables:
  *              int     h               accumulated character sum
- *              int     n               loop counter
  *
  *      global variables:
  *              char    ccase[]         an array of characters which
@@ -423,18 +434,23 @@ int cflag;
  */
 
 int
-hash(char *p)
+hash(const char *p, int flag)
 {
-        register int h;
+        int h;
 
         h = 0;
         while (*p) {
-                /*
-                 * JLH: case insensitive hash:
-                 * Doesn't much affect hashing, and allows
-                 * same function for mnemonics and symbols.
-                 */
-                h += ccase[*p++ & 0x007F];
+                if(flag) {
+                        /*
+                         * Case Insensitive Hash
+                         */
+                        h += ccase[*p++ & 0x007F];
+                } else {
+                        /*
+                         * Case Sensitive Hash
+                         */
+                        h += *p++;
+                }
         }
         return (h&HMASK);
 }
@@ -451,8 +467,8 @@ hash(char *p)
  *              jhartman at compuserve dot com
  *
  *      local variables:
- *              int     l               string length + 1
  *              int     bytes           bytes remaining in buffer area
+ *              int     len             string length + 1
  *              char *  p               pointer to head of copied string
  *              char *  pnext           next location in buffer area
  *
@@ -460,8 +476,9 @@ hash(char *p)
  *              none
  *
  *      functions called:
- *              VOID *  new()           assym.c
+ *              char *  new()           assym.c
  *              char *  strncpy()       c_library
+ *		int *	strlen()	c_library
  *
  *      side effects:
  *              Space allocated for string, string copied
@@ -471,25 +488,26 @@ hash(char *p)
 /*
  * To avoid wasting memory headers on small allocations, we
  * allocate a big chunk and parcel it out as required.
- * These static variables remember our hunk
+ * These static variables remember our hunk.
  */
 
 #define STR_SPC 1024
+
 static  char *  pnext = NULL;
 static  int     bytes = 0;
 
 char *
-strsto(char *str)
+strsto(const char *str)
 {
-        int  l;
+        int  len;
         char *p;
 
         /*
          * What we need, including a null.
          */
-        l = strlen(str) + 1;
+        len = strlen(str) + 1;
 
-        if (l > bytes) {
+        if (len > bytes) {
                 /*
                  * No space.  Allocate a new hunk.
                  * We lose the pointer to any old hunk.
@@ -503,15 +521,15 @@ strsto(char *str)
          * Copy the name and terminating null.
          */
         p = pnext;
-        strncpy(p, str, l);
+        strncpy(p, str, len);
 
-        pnext += l;
-        bytes -= l;
+        pnext += len;
+        bytes -= len;
 
         return(p);
 }
 
-/*)Function     VOID *  new(n)
+/*)Function     char *  new(n)
  *
  *              unsigned int    n       allocation size in bytes
  *
@@ -535,14 +553,14 @@ strsto(char *str)
  *              the assembly is terminated.
  */
 
-VOID *
+char *
 new(unsigned int n)
 {
-        register VOID *p;
+        VOID *p;
 
         if ((p = (VOID *) malloc(n)) == NULL) {
                 fprintf(stderr, "Out of space!\n");
-                asexit(1);
+                asexit(ER_FATAL);
         }
         return (p);
 }

@@ -4,22 +4,18 @@
 
 #include <testfwk.h>
 
-#ifdef SDCC
+#ifdef __SDCC
 #pragma std_sdcc99
 #endif
 
 #include <stdbool.h>
-
-#ifndef BOOL
-#define BOOL bool
-#endif
 
 void g(char c)
 {
   c;
 }
 
-BOOL b;
+bool b;
 
 void test_bug(void)
 {

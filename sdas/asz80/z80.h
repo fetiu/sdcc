@@ -1,20 +1,26 @@
-/* z80.h
+/* z80.h */
 
-   Copyright (C) 1989-1995 Alan R. Baldwin
-   721 Berkeley St., Kent, Ohio 44240
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 3, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+/*
+ *  Copyright (C) 1989-2009  Alan R. Baldwin
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * Alan R. Baldwin
+ * 721 Berkeley St.
+ * Kent, Ohio  44240
+ */
 
 /*
  * Extensions: P. Felber
@@ -27,11 +33,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 		Z80.H
 	}
 	$(FILES) = {
-		Z80EXT.C
 		Z80MCH.C
 		Z80ADR.C
 		Z80PST.C
 		ASMAIN.C
+		ASDBG.C
 		ASLEX.C
 		ASSYM.C
 		ASSUBR.C
@@ -93,6 +99,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define	S_R16X	34
 #define	S_CND	35
 #define	S_FLAG	36
+#define S_R8U1  37
+#define S_R8U2  38
 
 /*
  * Indexing modes
@@ -136,15 +144,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define	S_SBC	82
 
 /*
+ * CPU Types
+ */
+#define	S_CPU	83
+
+#define S_RL_UNDOCD  85
+#define X_UNDOCD 89
+
+/*
+ * Processor Types (S_CPU)
+ */
+#define	X_Z80	0
+#define	X_HD64	1
+
+/*
  * HD64180 Instructions
  */
-#define	X_HD64	90
-#define	X_INH2	91
-#define	X_IN	92
-#define	X_OUT	93
-#define	X_MLT	94
-#define	X_TST	95
-#define	X_TSTIO	96
+#define	X_INH2	90
+#define	X_IN	91
+#define	X_OUT	92
+#define	X_MLT	93
+#define	X_TST	94
+#define	X_TSTIO	95
 
 struct adsym
 {
@@ -154,6 +175,9 @@ struct adsym
 
 extern	struct	adsym	R8[];
 extern	struct	adsym	R8X[];
+extern	struct	adsym	R8U1[];
+extern	struct	adsym	R8U2[];
+
 extern	struct	adsym	R16[];
 extern	struct	adsym	R16X[];
 extern	struct	adsym	CND[];
@@ -165,9 +189,7 @@ extern	struct	adsym	CND[];
 	/* z80adr.c */
 extern	int		addr(struct expr *esp);
 extern	int		admode(struct adsym *sp);
-extern	int		any(char c, char *str);
 extern	int		srch(char *str);
-
 
 	/* z80mch.c */
 extern	int		genop(int pop, int op, struct expr *esp, int f);
@@ -181,7 +203,6 @@ extern	VOID		minit(void);
 	/* z80adr.c */
 extern	int		addr();
 extern	int		admode();
-extern	int		any();
 extern	int		srch();
 
 	/* z80mch.c */
@@ -192,4 +213,3 @@ extern	int		mchpcr();
 extern	VOID		minit();
 
 #endif
-

@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -13,7 +13,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -64,9 +64,12 @@ _gptrput (char *gptr, char c) __naked
  dataptrrestore$:
         mov     r0,dph ; restore r0                     ; 2
         mov     dph,#0 ; restore dph                    ; 2
-
- codeptr$:
         ret                                             ; 1
+    ;
+    ;   cannot store into code space, lock up
+    ;
+ codeptr$:
+        sjmp    .                                       ; 2
     ;
     ;   store into external stack/pdata space
     ;
@@ -83,7 +86,7 @@ _gptrput (char *gptr, char c) __naked
         ret                                             ; 1
 
                                                         ;===
-                                                        ;27 bytes
+                                                        ;29 bytes
     __endasm;
 }
 
@@ -115,9 +118,12 @@ _gptrput (char *gptr, char c) __naked
         mov     @r0,a                                   ; 1
  dataptrrestore$:
         mov     r0,b   ; restore r0                     ; 2
-
- codeptr$:
         ret                                             ; 1
+    ;
+    ;   cannot store into code space, lock up
+    ;
+ codeptr$:
+        sjmp    .                                       ; 2
     ;
     ;   store into external stack/pdata space
     ;
@@ -132,7 +138,7 @@ _gptrput (char *gptr, char c) __naked
         movx    @dptr,a                                 ; 1
         ret                                             ; 1
                                                         ;===
-                                                        ;25 bytes
+                                                        ;27 bytes
     __endasm;
 }
 
@@ -164,9 +170,12 @@ _gptrput (char *gptr, char c) __naked
  dataptrrestore$:
         mov     r0,dph ; restore r0                     ; 2
         mov     dph,#0 ; restore dph                    ; 2
-
- codeptr$:
         ret                                             ; 1
+    ;
+    ;   cannot store into code space, lock up
+    ;
+ codeptr$:
+        sjmp    .                                       ; 2
     ;
     ;   store into external stack/pdata space
     ;
@@ -181,65 +190,69 @@ _gptrput (char *gptr, char c) __naked
         ret                                             ; 1
 
                                                         ;===
-                                                        ;24 bytes
+                                                        ;26 bytes
     __endasm;
 }
 
 #endif
 
-#ifdef SDCC_ds390
+#ifdef __SDCC_ds390
 
 void
-_gptrputWord ()
+_gptrputWord (int *gptr, int w) __naked
 {
+/* The ds390 can write two bytes in one go.
+   B cannot be trashed */
+
+    gptr; w; /* hush the compiler */
+
     __asm
     ;
     ;   depending on the pointer type acc. to SDCCsymt.h
     ;
-        jb      _B_7,00013$           ; >0x80 code
-        jnb     _B_6,00012$           ; <0x40 far
+        jb      _B_7,codeptr_w$       ; >0x80 code
+        jnb     _B_6,xdataptr_w$      ; <0x40 far
 
         mov     dph,r0 ; save r0 independant of regbank
         mov     r0,dpl ; use only low order address
 
-        jb      _B_5,00014$           ; >0x60 pdata
+        jb      _B_5,pdataptr_w$      ; >0x60 pdata
 ;
 ;       store into near space
 ;
-        mov     @r0,_ap
+        mov     @r0,acc1
         inc     r0
         mov     @r0,a
-        sjmp    00015$
-;
-;       store into far space
-;
- 00012$:
-        xch     a,_ap
-        movx    @dptr,a
-        inc     dptr
-        xch     a,_ap
-        movx    @dptr,a
-        sjmp    00016$
-;
-;       store into code space
-;
- 00013$:
-        inc     dptr   ; do nothing
-        sjmp    00016$
-;
-;       store into xstack space
-;
- 00014$:
-        xch     a,_ap
-        movx    @r0,a
-        inc     r0
-        xch     a,_ap
-        movx    @r0, a
- 00015$:
+ dataptrrestore_w$:
         mov     dpl,r0
         mov     r0,dph ; restore r0
         mov     dph,#0 ; restore dph
- 00016$:
+        ret
+    ;
+    ;   cannot store into code space, lock up
+    ;
+ codeptr_w$:
+        sjmp    .
+;
+;       store into xstack space
+;
+ pdataptr_w$:
+        xch     a,acc1
+        movx    @r0,a
+        inc     r0
+        xch     a,acc1
+        movx    @r0, a
+        sjmp    dataptrrestore_w$
+;
+;       store into far space
+;
+ xdataptr_w$:
+        xch     a,acc1
+        movx    @dptr,a
+        inc     dptr
+        xch     a,acc1
+        movx    @dptr,a
+        ret
     __endasm;
 }
 

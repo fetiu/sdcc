@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -27,7 +27,7 @@
 -------------------------------------------------------------------------*/
 
 
-#define SDCC_FLOAT_LIB
+#define __SDCC_FLOAT_LIB
 #include <float.h>
 
 
@@ -40,19 +40,19 @@ static void dummy(void) __naked
 	.globl	fsgetarg
 fsgetarg:
 	// extract the input, placing it into:
-	//      sign     exponent   mantiassa
-	//      ----     --------   ---------
-	//  a:  sign_a   exp_a     r4/r3/r2
+	//      sign     exponent   mantissa
+	//      ----     --------   --------
+	//  a:  sign_a   exp_a      r4/r3/r2
 	//
 	mov	r2, dpl
 	mov	r3, dph
 	mov	c, b.7
 	rlc	a
 	mov	sign_a, c
+	mov	exp_a, a
 	jz	00001$
 	setb	b.7
 00001$:
-	mov	exp_a, a
 	mov	r4, b
 	ret
 	__endasm;

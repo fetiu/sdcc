@@ -1,44 +1,92 @@
-/* i85mch.c
-
-   Copyright (C) 1989-1995 Alan R. Baldwin
-   721 Berkeley St., Kent, Ohio 44240
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 3, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+/* i51mch.c */
 
 /*
- * 28-Oct-97 Ported from 8085 to 8051 by John Hartman
+ *  Copyright (C) 1998-2011  Alan R. Baldwin
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * Alan R. Baldwin
+ * 721 Berkeley St.
+ * Kent, Ohio  44240
+ *
+ *   This Assember Ported by
+ *      John L. Hartman (JLH)
+ *      jhartman at compuserve dot com
+ *      noice at noicedebugger dot com
+ *
+ *  Benny Kim (2011/07/21)
+ *  bennykim at coreriver dot com
+ *  Fixed bugs in relative address with "."
  */
 
-#include <stdio.h>
-#include <setjmp.h>
-#include <string.h>
 #include "asxxxx.h"
 #include "i8051.h"
+
+char    *cpu    = "Intel 8051";
+char    *dsft   = "asm";
+
+/*
+ * Opcode Cycle Definitions
+ */
+#define OPCY_SDP        ((char) (0xFF))
+#define OPCY_ERR        ((char) (0xFE))
+
+/*      OPCY_NONE       ((char) (0x80)) */
+/*      OPCY_MASK       ((char) (0x7F)) */
+
+#define UN      ((char) (OPCY_NONE | 0x00))
+
+/*
+ * 8051 Cycle Count
+ *
+ *      opcycles = i51pg1[opcode]
+ */
+static char i51pg1[256] = {
+/*--*--* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+/*--*--* -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - */
+/*00*/  12,24,24,12,12,12,12,12,12,12,12,12,12,12,12,12,
+/*10*/  24,24,24,12,12,12,12,12,12,12,12,12,12,12,12,12,
+/*20*/  24,24,24,12,12,12,12,12,12,12,12,12,12,12,12,12,
+/*30*/  24,24,24,12,12,12,12,12,12,12,12,12,12,12,12,12,
+/*40*/  24,24,12,24,12,12,12,12,12,12,12,12,12,12,12,12,
+/*50*/  24,24,12,24,12,12,12,12,12,12,12,12,12,12,12,12,
+/*60*/  24,24,12,24,12,12,12,12,12,12,12,12,12,12,12,12,
+/*70*/  24,24,24,24,12,24,12,12,12,12,12,12,12,12,12,12,
+/*80*/  24,24,24,24,48,24,24,24,24,24,24,24,24,24,24,24,
+/*90*/  24,24,24,24,12,12,12,12,12,12,12,12,12,12,12,12,
+/*A0*/  24,24,12,24,48,UN,24,24,24,24,24,24,24,24,24,24,
+/*B0*/  24,24,12,12,24,24,24,24,24,24,24,24,24,24,24,24,
+/*C0*/  24,24,12,12,12,12,12,12,12,12,12,12,12,12,12,12,
+/*D0*/  24,24,12,12,12,24,12,12,24,24,24,24,24,24,24,24,
+/*E0*/  24,24,24,24,12,12,12,12,12,12,12,12,12,12,12,12,
+/*F0*/  24,24,24,24,12,12,12,12,12,12,12,12,12,12,12,12
+};
 
 /*
  * Process machine ops.
  */
 VOID
-machine(mp)
-struct mne *mp;
+machine(struct mne *mp)
 {
-        register unsigned op;
-        register int t, t1, v1;
-        struct expr e, e1;
+        a_uint op;
+        int t, t1, v1;
+        struct expr e, e1, e2;
 
         clrexpr(&e);
         clrexpr(&e1);
+        clrexpr(&e2);
 
         op = mp->m_valu;
         switch (mp->m_type) {
@@ -48,35 +96,18 @@ struct mne *mp;
                 break;
 
         case S_JMP11:
-                /* ACALL or AJMP. In Flat24 mode, this is a
-                 * 19 bit destination; in 8051 mode, this is a
+                /*
                  * 11 bit destination.
-                 *
-                 * The opcode is merged with the address in a
-                 * hack-o-matic fashion by the linker.
-                */
+                 * Top 3 bits become the MSBs of the op-code.
+                 */
                 expr(&e, 0);
-                if (flat24Mode) {
-                        outr19(&e, op, R_J19);
-                }
-                else {
-                        outr11(&e, op, R_J11);
-                }
+                outrwm(&e, R_J11, op);
                 break;
 
         case S_JMP16:
-                /* LCALL or LJMP. In Flat24 mode, this is a 24 bit
-                 * destination; in 8051 mode, this is a 16 bit
-                 * destination.
-                 */
                 expr(&e, 0);
                 outab(op);
-                if (flat24Mode) {
-                        outr24(&e, 0);
-                }
-                else {
-                        outrw(&e, R3_NORM);
-                }
+                outrw(&e, R_NORM);
                 break;
 
         case S_ACC:
@@ -99,7 +130,7 @@ struct mne *mp;
                 case S_EXT:
                         /* Direct is also legal */
                         outab(op + 5);
-                        outrb(&e, R3_PAG0);
+                        outrb(&e, R_PAG0);
                         break;
 
                 case S_AT_R:
@@ -134,13 +165,13 @@ struct mne *mp;
                 switch (t1) {
                 case S_IMMED:
                         outab(op + 4);
-                        outrb(&e1, R3_NORM);
+                        outrb(&e1, R_NORM);
                         break;
 
                 case S_DIR:
                 case S_EXT:
                         outab(op + 5);
-                        outrb(&e1, R3_PAG0);
+                        outrb(&e1, R_PAG0);
                         break;
 
                 case S_AT_R:
@@ -171,13 +202,13 @@ struct mne *mp;
                         switch (t1) {
                         case S_A:
                                 outab(op + 2);
-                                outrb(&e, R3_PAG0);
+                                outrb(&e, R_PAG0);
                                 break;
 
                         case S_IMMED:
                                 outab(op + 3);
-                                outrb(&e, R3_PAG0);
-                                outrb(&e1, R3_NORM);
+                                outrb(&e, R_PAG0);
+                                outrb(&e1, R_NORM);
                                 break;
 
                         default:
@@ -189,13 +220,13 @@ struct mne *mp;
                         switch (t1) {
                         case S_IMMED:
                                 outab(op + 4);
-                                outrb(&e1, R3_NORM);
+                                outrb(&e1, R_NORM);
                                 break;
 
                         case S_DIR:
                         case S_EXT:
                                 outab(op + 5);
-                                outrb(&e1, R3_PAG0);
+                                outrb(&e1, R_PAG0);
                                 break;
 
                         case S_AT_R:
@@ -220,12 +251,12 @@ struct mne *mp;
                         case S_DIR:
                         case S_EXT:
                                 outab(op + 0x32);
-                                outrb(&e1, R3_PAG0);
+                                outrb(&e1, R_PAG0);
                                 break;
 
                         case S_NOT_BIT:
                                 outab(op + 0x60);
-                                outrb(&e1, R3_PAG0);
+                                outrb(&e1, R_PAG0);
                                 break;
 
                         default:
@@ -250,7 +281,7 @@ struct mne *mp;
                 case S_DIR:
                 case S_EXT:
                         outab(op + 5);
-                        outrb(&e1, R3_PAG0);
+                        outrb(&e1, R_PAG0);
                         break;
 
                 case S_AT_R:
@@ -277,13 +308,13 @@ struct mne *mp;
                         switch (t1) {
                         case S_IMMED:
                                 outab(0x74);
-                                outrb(&e1, R3_NORM);
+                                outrb(&e1, R_NORM);
                                 break;
 
                         case S_DIR:
                         case S_EXT:
                                 outab(0xE5);
-                                outrb(&e1, R3_PAG0);
+                                outrb(&e1, R_PAG0);
                                 break;
 
                         case S_AT_R:
@@ -307,13 +338,13 @@ struct mne *mp;
 
                         case S_IMMED:
                                 outab(0x78 + e.e_addr);
-                                outrb(&e1, R3_NORM);
+                                outrb(&e1, R_NORM);
                                 break;
 
                         case S_DIR:
                         case S_EXT:
                                 outab(0xA8 + e.e_addr);
-                                outrb(&e1, R3_PAG0);
+                                outrb(&e1, R_PAG0);
                                 break;
 
                         default:
@@ -326,35 +357,35 @@ struct mne *mp;
                         switch (t1) {
                         case S_A:
                                 outab(0xF5);
-                                outrb(&e, R3_PAG0);
+                                outrb(&e, R_PAG0);
                                 break;
 
                         case S_IMMED:
                                 outab(0x75);
-                                outrb(&e, R3_PAG0);
-                                outrb(&e1, R3_NORM);
+                                outrb(&e, R_PAG0);
+                                outrb(&e1, R_NORM);
                                 break;
 
                         case S_DIR:
                         case S_EXT:
                                 outab(0x85);
-                                outrb(&e1, R3_PAG0);
-                                outrb(&e, R3_PAG0);
+                                outrb(&e1, R_PAG0);
+                                outrb(&e, R_PAG0);
                                 break;
 
                         case S_AT_R:
                                 outab(0x86 + e1.e_addr);
-                                outrb(&e, R3_PAG0);
+                                outrb(&e, R_PAG0);
                                 break;
 
                         case S_REG:
                                 outab(0x88 + e1.e_addr);
-                                outrb(&e, R3_PAG0);
+                                outrb(&e, R_PAG0);
                                 break;
 
                         case S_C:
                                 outab(0x92);
-                                outrb(&e, R3_PAG0);
+                                outrb(&e, R_PAG0);
                                 break;
 
                         default:
@@ -366,13 +397,13 @@ struct mne *mp;
                         switch (t1) {
                         case S_IMMED:
                                 outab(0x76 + e.e_addr);
-                                outrb(&e1, R3_NORM);
+                                outrb(&e1, R_NORM);
                                 break;
 
                         case S_DIR:
                         case S_EXT:
                                 outab(0xA6 + e.e_addr);
-                                outrb(&e1, R3_PAG0);
+                                outrb(&e1, R_PAG0);
                                 break;
 
                         case S_A:
@@ -388,24 +419,14 @@ struct mne *mp;
                         if ((t1 != S_DIR) && (t1 != S_EXT))
                                 aerr();
                         outab(0xA2);
-                        outrb(&e1, R3_PAG0);
+                        outrb(&e1, R_PAG0);
                         break;
 
                 case S_DPTR:
                         if (t1 != S_IMMED)
                                 aerr();
                         outab(0x90);
-
-                        /* mov DPTR, #immed: for Flat24 mode,
-                         * #immed is a 24 bit constant. For 8051,
-                         * it is a 16 bit constant.
-                         */
-                        if (flat24Mode) {
-                                outr24(&e1, 0);
-                        }
-                        else {
-                                outrw(&e1, R3_NORM);
-                        }
+                        outrw(&e1, R_NORM);
                         break;
 
                 default:
@@ -413,7 +434,7 @@ struct mne *mp;
                 }
                 break;
 
-        case S_BITBR:
+        case S_BITBR:   /* JB, JBC, JNB bit,rel */
                 /* Branch on bit set/clear */
                 t = addr(&e);
                 if ((t != S_DIR) && (t != S_EXT))
@@ -421,8 +442,10 @@ struct mne *mp;
                 /* sdcc svn rev #4994: fixed bug 1865114 */
                 comma(1);
                 expr(&e1, 0);
+
                 outab(op);
-                outrb(&e, R3_PAG0);
+                outrb(&e, R_PAG0);
+
                 if (mchpcr(&e1)) {
                         v1 = (int) (e1.e_addr - dot.s_addr - 1);
                         /* sdcc svn rev #602: Fix some path problems */
@@ -430,17 +453,18 @@ struct mne *mp;
                                 aerr();
                         outab(v1);
                 } else {
-                        outrb(&e1, R3_PCR);
+                        outrb(&e1, R_PCR);
                 }
                 if (e1.e_mode != S_USER)
                         rerr();
                 break;
 
-        case S_BR:
+        case S_BR:  /* JC, JNC, JZ, JNZ */
                 /* Relative branch */
                 /* sdcc svn rev #4994: fixed bug 1865114 */
                 expr(&e1, 0);
                 outab(op);
+
                 if (mchpcr(&e1)) {
                         v1 = (int) (e1.e_addr - dot.s_addr - 1);
                         /* sdcc svn rev #602: Fix some path problems */
@@ -448,7 +472,7 @@ struct mne *mp;
                                 aerr();
                         outab(v1);
                 } else {
-                        outrb(&e1, R3_PCR);
+                        outrb(&e1, R_PCR);
                 }
                 if (e1.e_mode != S_USER)
                         rerr();
@@ -459,52 +483,55 @@ struct mne *mp;
                 t = addr(&e);
                 comma(1);
                 t1 = addr(&e1);
+
+                /* Benny */
+                comma(1);
+                expr(&e2, 0);
+
                 switch (t) {
                 case S_A:
                         if (t1 == S_IMMED) {
                                 outab(op + 4);
-                                outrb(&e1, R3_NORM);
+                                outrb(&e1, R_NORM);
                         }
                         else if ((t1 == S_DIR) || (t1 == S_EXT)) {
                                 outab(op + 5);
-                                outrb(&e1, R3_PAG0);
+                                outrb(&e1, R_PAG0);
                         }
                         else
                                 aerr();
-                break;
+                        break;
 
                 case S_AT_R:
                         outab(op + 6 + e.e_addr);
                         if (t1 != S_IMMED)
                                 aerr();
-                        outrb(&e1, R3_NORM);
+                        outrb(&e1, R_NORM);
                         break;
 
                 case S_REG:
                         outab(op + 8 + e.e_addr);
                         if (t1 != S_IMMED)
                                 aerr();
-                        outrb(&e1, R3_NORM);
+                        outrb(&e1, R_NORM);
                         break;
 
                 default:
                         aerr();
+                        break;
                 }
 
                 /* branch destination */
-                comma(1);
-                clrexpr(&e1);
-                expr(&e1, 0);
-                if (mchpcr(&e1)) {
-                        v1 = (int) (e1.e_addr - dot.s_addr - 1);
+                if (mchpcr(&e2)) {
+                        v1 = (int) (e2.e_addr - dot.s_addr - 1);
                         /* sdcc svn rev #602: Fix some path problems */
                         if (pass == 2 && ((v1 < -128) || (v1 > 127)))
                                 aerr();
                         outab(v1);
                 } else {
-                        outrb(&e1, R3_PCR);
+                        outrb(&e2, R_PCR);
                 }
-                if (e1.e_mode != S_USER)
+                if (e2.e_mode != S_USER)
                         rerr();
                 break;
 
@@ -514,12 +541,12 @@ struct mne *mp;
                 /* sdcc svn rev #4994: fixed bug 1865114 */
                 comma(1);
                 expr(&e1, 0);
-                switch (t) {
 
+                switch (t) {
                 case S_DIR:
                 case S_EXT:
                         outab(op + 5);
-                        outrb(&e, R3_PAG0);
+                        outrb(&e, R_PAG0);
                         break;
 
                 case S_REG:
@@ -539,7 +566,7 @@ struct mne *mp;
                                 aerr();
                         outab(v1);
                 } else {
-                        outrb(&e1, R3_PCR);
+                        outrb(&e1, R_PCR);
                 }
                 if (e1.e_mode != S_USER)
                         rerr();
@@ -580,7 +607,7 @@ struct mne *mp;
                         case S_AT_DP:
                                 outab(0xE0);
                                 break;
-                                
+
                         case S_AT_R:
                                 outab(0xE2 + e1.e_addr);
                                 break;
@@ -635,7 +662,7 @@ struct mne *mp;
                 case S_DIR:
                 case S_EXT:
                         outab(op);
-                        outrb(&e, R3_PAG0);
+                        outrb(&e, R_PAG0);
                         break;
 
                 default:
@@ -654,7 +681,7 @@ struct mne *mp;
                 case S_DIR:
                 case S_EXT:
                         outab(op);
-                        outrb(&e, R3_PAG0);
+                        outrb(&e, R_PAG0);
                         break;
 
                 default:
@@ -665,12 +692,16 @@ struct mne *mp;
         /* direct */
         case S_DIRECT:
                 t = addr(&e);
+                if (t == S_A) {
+                        e.e_addr = 0xE0;
+                        e.e_mode = S_DIR;
+                } else
                 if ((t != S_DIR) && (t != S_EXT)) {
                         aerr();
                         break;
                 }
                 outab(op);
-                outrb(&e, R3_PAG0);
+                outrb(&e, R_PAG0);
                 break;
 
         /* XCHD A,@Rn */
@@ -684,13 +715,19 @@ struct mne *mp;
                 case S_AT_R:
                         outab(op + e1.e_addr);
                         break;
+
                 default:
                         aerr();
                 }
                 break;
 
         default:
+                opcycles = OPCY_ERR;
                 err('o');
+                break;
+        }
+        if (opcycles == OPCY_NONE) {
+                opcycles = i51pg1[cb[0] & 0xFF];
         }
 }
 
@@ -698,8 +735,7 @@ struct mne *mp;
  * Branch/Jump PCR Mode Check
  */
 int
-mchpcr(esp)
-struct expr *esp;
+mchpcr(struct expr *esp)
 {
         if (esp->e_base.e_ap == dot.s_area) {
                 return(1);
@@ -719,20 +755,30 @@ struct expr *esp;
         return(0);
 }
 
- /*
-  * Machine specific initialization
-  */
+/*
+ * Machine specific initialization
+ */
 
-static int beenHere=0;      /* set non-zero if we have done that... */
+static int beenHere = 0;        /* set non-zero if we have done that... */
 
 VOID
-minit()
+minit(void)
 {
         struct sym      *sp;
         struct PreDef   *pd;
         int i;
         char pid[8];
         char *p;
+
+        /*
+         * Byte Order
+         */
+        hilo = 1;
+
+        /*
+         * Address Space
+         */
+        exprmasks(3);
 
         /*
          * First time only:
@@ -759,6 +805,7 @@ minit()
                                 if (sp->s_type == S_NEW) {
                                         sp->s_addr = pd->value;
                                         sp->s_type = S_USER;
+                                        sp->s_flag = S_LCL | S_ASG;
                                 }
                         }
                         pd++;

@@ -234,9 +234,7 @@ sdcpp_init_options (unsigned int argc, const char **argv)
   cpp_register_pragma(parse_in, 0, "pedantic_parse_number", do_pragma_pedantic_parse_number, false);
 
   /* SDCC _asm specific */
-  parse_in->spec_nodes.n__asm1 = cpp_lookup (parse_in, DSC("_asm"));
   parse_in->spec_nodes.n__asm = cpp_lookup (parse_in, DSC("__asm"));
-  parse_in->spec_nodes.n__endasm1 = cpp_lookup (parse_in, DSC("_endasm"));
   parse_in->spec_nodes.n__endasm = cpp_lookup (parse_in, DSC("__endasm"));
 
   return ret;
@@ -245,11 +243,12 @@ sdcpp_init_options (unsigned int argc, const char **argv)
 void
 print_version (FILE *file, const char *indent)
 {
-  fprintf (file, _("GNU CPP version %s (cpplib)"), version_string);
-#ifdef TARGET_VERSION
-  TARGET_VERSION;
-#endif
-  fputc ('\n', file);
+  printf (_("%s %s%s\n"), progname, pkgversion_string, version_string);
+  printf ("Copyright %s 2011 Free Software Foundation, Inc.\n",
+    _("(C)"));
+  fputs (_("This is free software; see the source for copying conditions.  There is NO\n"
+    "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"),
+    stdout);
 }
 
 /* Initialization of the front end environment, before command line

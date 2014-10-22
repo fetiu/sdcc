@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -13,7 +13,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -33,14 +33,10 @@
 
 #include <stdbool.h>
 
-#ifndef BOOL
-#define BOOL _Bool
-#endif
-
-#if !defined(SDCC_USE_XSTACK) && !defined(_SDCC_NO_ASM_LIB_FUNCS)
-#  if defined(SDCC_mcs51)
-#    if defined(SDCC_MODEL_SMALL)
-#      if defined(SDCC_STACK_AUTO) && !defined(SDCC_PARMS_IN_BANK1)
+#if !defined(__SDCC_USE_XSTACK) && !defined(_SDCC_NO_ASM_LIB_FUNCS)
+#  if defined(__SDCC_mcs51)
+#    if defined(__SDCC_MODEL_SMALL)
+#      if defined(__SDCC_STACK_AUTO) && !defined(SDCC_PARMS_IN_BANK1)
 #        define _DIVULONG_ASM_SMALL_AUTO
 #      else
 #        define _DIVULONG_ASM_SMALL
@@ -73,7 +69,7 @@ __divulong:
 	#define reste3	r7
 #if !defined(SDCC_PARMS_IN_BANK1)
 
-#if defined(SDCC_NOOVERLAY)
+#if defined(__SDCC_NOOVERLAY)
 	.area DSEG    (DATA)
 #else
 	.area OSEG    (OVR,DATA)
@@ -227,7 +223,7 @@ __divulong:
 __divlong:			; entry point for __divslong
 
 	mov	a,@r0		; load y0
-	mov	r1,a
+	mov	y0,a
 	inc	r0		; r0 points to y1
 
 	mov	count,#32
@@ -336,7 +332,7 @@ _divulong (unsigned long x, unsigned long y)
 {
   unsigned long reste = 0L;
   unsigned char count = 32;
-  BOOL c;
+  bool c;
 
   do
   {

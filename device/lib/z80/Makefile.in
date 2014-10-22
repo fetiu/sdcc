@@ -4,14 +4,10 @@ VPATH  = @srcdir@
 srcdir = @srcdir@
 top_builddir = @top_builddir@
 
-AR_S            = @AR@ @AR_S_FLAG@
+LIB_TYPE     = @LIB_TYPE@
 
-LIB_TYPE        = @LIB_TYPE@
-
-TOPDIR = ../../..
-
-SCC = $(TOPDIR)/bin/sdcc -mz80
-SAS = $(TOPDIR)/bin/sdasz80
+SCC = $(top_builddir)/bin/sdcc -mz80
+SAS = $(top_builddir)/bin/sdasz80
 
 # override PORTDIR defined by super (parent) makefile
 override PORTDIR = ../build/z80
@@ -26,6 +22,11 @@ Z80_LONG = $(COMMON_LONG) \
   _divulong.c \
   _mullong.c
 
+Z80_LONGLONG = $(COMMON_LONGLONG) \
+  _mullonglong.c \
+  _divslonglong.c \
+  _divulonglong.c
+
 Z80_SDCC = $(COMMON_SDCC) \
   _itoa.c \
   _ltoa.c \
@@ -33,11 +34,11 @@ Z80_SDCC = $(COMMON_SDCC) \
   sprintf.c \
   vprintf.c
 
-Z80SOURCES = $(addprefix ../,$(Z80_FLOAT) $(Z80_INT) $(Z80_LONG) $(Z80_SDCC))
-Z8OBJECTS = $(patsubst %.c,%.rel,$(Z80_FLOAT) $(Z80_INT) $(Z80_LONG) $(Z80_SDCC))
+Z80SOURCES = $(addprefix ../,$(Z80_FLOAT) $(Z80_INT) $(Z80_LONG) $(Z80_LONGLONG) $(Z80_SDCC))
+Z8OBJECTS = $(patsubst %.c,%.rel,$(Z80_FLOAT) $(Z80_INT) $(Z80_LONG) $(Z80_LONGLONG) $(Z80_SDCC))
 
 OBJ = divunsigned.rel divsigned.rel divmixed.rel modunsigned.rel modsigned.rel modmixed.rel mul.rel mulchar.rel \
-      putchar.rel shift.rel stubs.rel crt0_rle.rel heap.rel fstubs.rel memmove.rel strlen.rel abs.rel crtcall.rel \
+      putchar.rel heap.rel memmove.rel strcpy.rel strlen.rel abs.rel crtcall.rel \
       setjmp.rel
 
 LIB = z80.lib
@@ -55,14 +56,13 @@ $(PORTDIR)/crt0.rel: crt0.rel
 $(PORTDIR)/$(LIB): $(OBJ) $(Z8OBJECTS) Makefile
 ifeq ($(LIB_TYPE), SDCCLIB)
 	rm -f $@; \
-	../../../bin/sdcclib -a $@ $(OBJ) $(Z8OBJECTS)
+	$(top_builddir)/bin/sdcclib -a $@ $(OBJ) $(Z8OBJECTS)
 else
   ifeq ($(LIB_TYPE), AR)
-	$(AR_S) -cq $@ $(OBJ) $(Z8OBJECTS)
+	$(top_builddir)/bin/sdar -rcS $@ $(OBJ) $(Z8OBJECTS)
   else
     ifeq ($(LIB_TYPE), RANLIB)
-	$(AR_S) -cq $@ $(OBJ) $(Z8OBJECTS)
-	$(top_builddir)/bin/sdranlib $@
+	$(top_builddir)/bin/sdar -rc $@ $(OBJ) $(Z8OBJECTS)
     else
 	rm -f $@; \
 	for i in $(basename $(OBJ) $(Z8OBJECTS)); do echo $$i >>$@; done
@@ -88,3 +88,4 @@ clean:
 
 distclean: clean
 	rm -f Makefile
+

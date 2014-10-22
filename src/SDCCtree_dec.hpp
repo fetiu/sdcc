@@ -23,7 +23,7 @@
 //
 // struct tree_dec_node
 // {
-//	std::set<unsigned int> bag;
+//  std::set<unsigned int> bag;
 // };
 // typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, tree_dec_node> tree_dec_t;
 //
@@ -52,6 +52,14 @@
 #include <boost/graph/properties.hpp>
 #include <boost/graph/copy.hpp>
 #include <boost/graph/adjacency_list.hpp>
+
+struct forget_properties
+{
+  template<class T1, class T2>
+  void operator()(const T1&, const T2&) const
+  {
+  }
+};
 
 // Thorup algorithm D.
 // The use of the multimap makes the complexity of this O(|I|log|I|), which could be reduced to O(|I|).
@@ -97,7 +105,6 @@ template <class I_t>
 void thorup_E(std::multimap<unsigned int, unsigned int> &M, const I_t &I)
 {
   typedef typename boost::graph_traits<I_t>::adjacency_iterator adjacency_iter_t;
-  typedef typename boost::graph_traits<I_t>::vertex_iterator vertex_iter_t;
   typedef typename boost::property_map<I_t, boost::vertex_index_t>::type index_map;
   index_map index = boost::get(boost::vertex_index, I);
 
@@ -135,11 +142,11 @@ void thorup_E(std::multimap<unsigned int, unsigned int> &M, const I_t &I)
       s.push(std::pair<int, unsigned int>(i2, j));
     }
     
-    // Not in Thorup's paper, but without this the algorithm gives incorrect results.
+    // Thorup forgot this in his paper. Without it, some maximal chains are omitted.
     while(s.size() > 1)
     {
-    	M.insert(std::pair<unsigned int, unsigned int>(s.top().second, s.top().first));
-    	s.pop();
+        M.insert(std::pair<unsigned int, unsigned int>(s.top().second, s.top().first));
+        s.pop();
     }
 }
 
@@ -150,9 +157,9 @@ void thorup_E(std::multimap<unsigned int, unsigned int> &M, const I_t &I)
 template <class l_t, class G_t>
 void thorup_elimination_ordering(l_t &l, const G_t &G)
 {
-  // Should we do this? Or just use G as J? The Thorup paper seems unclear, it speaks of statements that contain jumps to other statements, but does it count as a jump, when they're just subsequent?
+  // Remove edges to immediately following instruction. By "each statement can have at most obne jump" in the last paragraph of Appendix A it is clear that Thorup does not consider the implicit next-instruction-edges as jumps.
   boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS> J;
-  boost::copy_graph(G, J);
+  boost::copy_graph(G, J, boost::vertex_copy(forget_properties()).edge_copy(forget_properties()));
   for (unsigned int i = 0; i < boost::num_vertices(J) - 1; i++)
     remove_edge(i, i + 1, J);
 
@@ -189,7 +196,7 @@ typename boost::graph_traits<T_t>::vertex_iterator find_bag(const std::set<unsig
         t_found = t;
     }
 
-  if (t_found == t_end)	// Todo: Better error handling (throw exception?)
+  if (t_found == t_end) // Todo: Better error handling (throw exception?)
     {
       std::cerr << "find_bag() failed.\n";
       std::cerr.flush();
@@ -256,7 +263,7 @@ void tree_decomposition_from_elimination_ordering(T_t &T, const std::list<unsign
 
   // Todo: Implement a graph adaptor for boost that allows to treat directed graphs as undirected graphs.
   boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS> G_sym;
-  boost::copy_graph(G, G_sym);
+  boost::copy_graph(G, G_sym, boost::vertex_copy(forget_properties()).edge_copy(forget_properties()));
 
   std::vector<bool> active(boost::num_vertices(G), true);
 
@@ -396,9 +403,12 @@ void nicify_diffs_more(T_t &T, typename boost::graph_traits<T_t>::vertex_descrip
           typename boost::graph_traits<T_t>::vertex_descriptor d = boost::add_vertex(T);
           T[d].bag = T[t].bag;
           T[d].bag.erase(T[d].bag.begin());
+          T[d].weight = 0;
           boost::add_edge(t, d, T);
           nicify_diffs_more(T, t);
         }
+      else
+        T[t].weight = 0;
       return;
     case 1:
       break;
@@ -407,6 +417,7 @@ void nicify_diffs_more(T_t &T, typename boost::graph_traits<T_t>::vertex_descrip
       c1 = *c;
       nicify_diffs_more(T, c0);
       nicify_diffs_more(T, c1);
+      T[t].weight = std::min(T[c0].weight, T[c1].weight) + 1;
       return;
     default:
       std::cerr << "nicify_diffs_more error.\n";
@@ -422,6 +433,7 @@ void nicify_diffs_more(T_t &T, typename boost::graph_traits<T_t>::vertex_descrip
   if (t_size <= c0_size + 1 && t_size + 1 >= c0_size)
     {
       nicify_diffs_more(T, c0);
+      T[t].weight = T[c0].weight;
       return;
     }
 
@@ -461,9 +473,16 @@ void nicify(T_t &T)
 
   t = find_root(T);
 
+  // Ensure we have an empty bag at the root.
+  if(T[t].bag.size())
+  {
+    typename boost::graph_traits<T_t>::vertex_descriptor d = t;
+    t = add_vertex(T);
+    boost::add_edge(t, d, T);
+  }
+
   nicify_joins(T, t);
   nicify_diffs(T, t);
   nicify_diffs_more(T, t);
 }
-
 

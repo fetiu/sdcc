@@ -1,24 +1,27 @@
-/* assubr.c
+/* assubr.c */
 
-   Copyright (C) 1989-1995 Alan R. Baldwin
-   721 Berkeley St., Kent, Ohio 44240
+/*
+ *  Copyright (C) 1989-2010  Alan R. Baldwin
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * Alan R. Baldwin
+ * 721 Berkeley St.
+ * Kent, Ohio  44240
+ */
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 3, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
-#include <stdio.h>
-#include <setjmp.h>
-#include <string.h>
 #include "sdas.h"
 #include "asxxxx.h"
 
@@ -33,6 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *              VOID    err()
  *              VOID    qerr()
  *              VOID    rerr()
+ *              char *  geterr()
  *
  *      assubr.c contains the local array of *error[]
  */
@@ -50,6 +54,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *              char *  p               pointer to the error array
  *
  *      global variables:
+ *              int     aserr           error counter
  *              char    eb[]            array of generated error codes
  *
  *      functions called:
@@ -61,10 +66,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  */
 
 VOID
-err(register int c)
+err(int c)
 {
-        register char *p;
+        char *p;
 
+        aserr++;
         p = eb;
         while (p < ep)
                 if (*p++ == c)
@@ -86,19 +92,16 @@ err(register int c)
  *              char *  p               pointer to error code array eb[]
  *
  *      global variables:
- *              int     cfile           current source file index
  *              char    eb[]            array of generated error codes
  *              char *  ep              pointer into error list
- *              int     incfile         current include file index
- *              char    incfn[]         array of include file names
- *              int     incline[]       array of include line numbers
- *              char    srcfn[]         array of source file names
- *              int     srcline[]       array of source line numbers
+ *              int     incline         include file line number
+ *              char    afn[]           afile() constructed filespec
  *              FILE *  stderr          c_library
  *
  *      functions called:
  *              int     fprintf()       c_library
  *              char *  geterr()        assubr.c
+ *              int     getlnm()        assubr.c
  *
  *      side effects:
  *              none
@@ -107,7 +110,7 @@ err(register int c)
 VOID
 diag()
 {
-        register char *p,*errstr;
+        char *p,*errstr;
 
         if (eb != ep) {
                 p = eb;
@@ -117,34 +120,22 @@ diag()
                                 fprintf(stderr, "%c", *p++);
                         }
                         fprintf(stderr, "> in line ");
-                        if (incfil >= 0) {
-                                fprintf(stderr, "%d", incline[incfil]);
-                                fprintf(stderr, " of %s\n", incfn[incfil]);
-                        } else {
-                                fprintf(stderr, "%d", srcline[cfile]);
-                                fprintf(stderr, " of %s\n", srcfn[cfile]);
-                        }
+                        fprintf(stderr, "%d", getlnm());
+                        fprintf(stderr, " of %s\n", afn);
                         p = eb;
                 }
                 while (p < ep) {
                         if ((errstr = geterr(*p++)) != NULL) {
-                                if (is_sdas()) {
-                                        /* Modified to conform to gcc error standard, M. Hope, 7 Feb 98. */
-                                        if (incfil >= 0) {
-                                                fprintf(stderr, "%s:", incfn[incfil]);
-                                                fprintf(stderr, "%d: Error:", incline[incfil]);
-                                        }
-                                        else {
-                                                fprintf(stderr, "%s:", srcfn[cfile]);
-                                                fprintf(stderr, "%d: Error:", srcline[cfile]);
-                                        }
-                                        fprintf(stderr, " %s\n", errstr);
-                                } else {
+                                if (!is_sdas()) {
                                         fprintf(stderr, "              %s\n", errstr);
+                                } else {
+                                        /* Modified to conform to gcc error standard, M. Hope, 7 Feb 98. */
+                                        fprintf(stderr, "%s:", afn);
+                                        fprintf(stderr, "%d: Error:", getlnm());
+                                        fprintf(stderr, " %s\n", errstr);
                                 }
                         }
                 }
-                ++aserr;
         }
 }
 
@@ -163,16 +154,12 @@ diag()
  *              none
  *
  *      global variables:
- *              int     cfile           current source file index
- *              int     incfile         current include file index
- *              char    incfn[]         array of include file names
- *              int     incline[]       array of include line numbers
- *              char    srcfn[]         array of source file names
- *              int     srcline[]       array of source line numbers
+ *              char    afn[]           afile() constructed filespec
  *              FILE *  stderr          c_library
  *
  *      functions called:
  *              int     fprintf()       c_library
+ *              int     getlnm()        assubr.c
  *
  *      side effects:
  *              none
@@ -181,13 +168,8 @@ VOID
 warnBanner(void)
 {
         fprintf(stderr, "?ASxxxx-Warning in line ");
-        if (incfil >= 0) {
-                fprintf(stderr, "%d", incline[incfil]);
-                fprintf(stderr, " of %s\n", incfn[incfil]);
-        } else {
-                fprintf(stderr, "%d", srcline[cfile]);
-                fprintf(stderr, " of %s\n", srcfn[cfile]);
-        }
+        fprintf(stderr, "%d", getlnm());
+        fprintf(stderr, " of %s\n", afn);
         fprintf(stderr, "               ");
 }       
 /* end sdas specific */
@@ -258,8 +240,8 @@ char *errors[] = {
         "<u> undefined symbol encountered during assembly",
         NULL
 };
-        
-/*)Function:    char    *getarr(c)
+
+/*)Function:    char    *geterr(c)
  *
  *              int     c               the error code character
  *
@@ -272,6 +254,7 @@ char *errors[] = {
  *      global variables:
  *              char    *errors[]       array of pointers to the
  *                                      error strings
+ *              char    erb[]           Error string buffer
  *
  *      functions called:
  *              none
@@ -284,12 +267,13 @@ char *
 geterr(c)
 int c;
 {
-        int     i;
+        int i;
 
         for (i=0; errors[i]!=NULL; i++) {
                 if (c == errors[i][1]) {
                         return(errors[i]);
                 }
         }
-        return(NULL);
+        sprintf(erb, "<e> %.*s", (int) (sizeof(erb)-5), ib);
+        return(erb);
 }

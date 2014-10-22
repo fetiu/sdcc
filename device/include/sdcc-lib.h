@@ -6,7 +6,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -30,23 +30,32 @@
 #ifndef __SDC51_SDCC_LIB_H
 #define __SDC51_SDCC_LIB_H	1
 
-#if defined(__z80)
+#if defined(__SDCC_z80)
 #include <asm/z80/features.h>
 
-#elif defined(__z180)
+#elif defined(__SDCC_z180)
 #include <asm/z180/features.h>
 
-#elif defined(__r2k)
+#elif defined(__SDCC_r2k)
 #include <asm/r2k/features.h>
 
-#elif defined(__gbz80)
+#elif defined(__SDCC_r3ka)
+#include <asm/r3ka/features.h>
+
+#elif defined(__SDCC_tlcs90)
+#include <asm/tlcs90/features.h>
+
+#elif defined(__SDCC_gbz80)
 #include <asm/gbz80/features.h>
 
-#elif defined(__mcs51)
+#elif defined(__SDCC_mcs51)
 #include <asm/mcs51/features.h>
 
-#elif defined(__ds390)
+#elif defined(__SDCC_ds390)
 #include <asm/ds390/features.h>
+
+#elif defined(__SDCC_stm8)
+#include <asm/stm8/features.h>
 
 #else
 /* PENDING */
@@ -55,3 +64,4 @@
 #endif
 
 #endif
+

@@ -16,10 +16,6 @@
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-   
-   In other words, you are welcome to use, share and improve this program.
-   You are forbidden to forbid anyone else to use, share and improve
-   what you give them.   Help stamp out software-hoarding!  
 -------------------------------------------------------------------------*/
 
 #ifndef Z80GEN_H
@@ -93,6 +89,8 @@ asmop;
 void genZ80Code (iCode *);
 void z80_emitDebuggerSymbol (const char *);
 
-extern bool assignment_optimal;
+extern bool z80_assignment_optimal;
+extern bool should_omit_frame_ptr;
 
 #endif
+

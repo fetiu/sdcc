@@ -31,6 +31,9 @@
 #undef PREFIX_INCLUDE_DIR
 
 
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
+
 /* Define as the number of bits in a byte, if \`limits.h' doesn't. */
 #undef CHAR_BIT
 
@@ -163,10 +166,6 @@
 /* Define if the host execution character set is EBCDIC. */
 #undef HOST_EBCDIC
 
-/* Define if the host machine stores words of multi-word integers in
-   big-endian order. */
-#undef HOST_WORDS_BIG_ENDIAN
-
 /* Define if host mkdir takes a single argument. */
 #undef MKDIR_TAKES_ONE_ARG
 
@@ -218,6 +217,18 @@
 
 /* Define to the version of the distribution. */
 #undef VERSION
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */

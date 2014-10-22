@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -35,12 +35,12 @@
    variables if external data memory needs to be
    enabled first. */
 
-#if defined(SDCC_ds390) || defined(SDCC_ds400)
+#if defined(__SDCC_ds390) || defined(__SDCC_ds400)
 
 /* Disable "ISO C forbids an empty source file" warning message */
 #pragma disable_warning 190
 
-#elif defined(SDCC_mcs51) || defined(SDCC_z80)
+#elif defined(__SDCC_mcs51) || defined(__SDCC_z80)
 
 unsigned char _sdcc_external_startup (void) __nonbanked
 {

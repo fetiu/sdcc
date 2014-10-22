@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -29,7 +29,7 @@
 #include <sdcc-lib.h>
 #include <malloc.h>
 
-#if defined(SDCC_STACK_AUTO) || defined(SDCC_z80) || defined(SDCC_z180) || defined(SDCC_gbz80)
+#if defined(__SDCC_STACK_AUTO) || defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_gbz80)
   #define CRITICAL __critical
 #else
   #define CRITICAL
@@ -241,3 +241,4 @@ malloc (unsigned int size)
 
             //END OF MODULE
 #endif
+

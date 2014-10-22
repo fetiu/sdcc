@@ -53,13 +53,13 @@
     <ClCompile Include="z80adr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="z80ext.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="z80mch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="z80pst.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\asxxsrc\asmcro.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

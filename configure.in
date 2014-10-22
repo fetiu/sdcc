@@ -3,7 +3,12 @@
 AC_PREREQ(2.60)
 AC_INIT(.version)
 AC_CONFIG_SRCDIR([Makefile.in])
-AC_CONFIG_HEADER([sdccconf.h:sdccconf_in.h custom.h:custom_in.h sdas/linksrc/asxxxx_config.h])
+
+# Determine the host and build type.
+# ===========================================================================
+AC_CANONICAL_HOST
+
+AC_CONFIG_HEADER([sdccconf.h:sdccconf_in.h sdas/linksrc/asxxxx_config.h])
 
 AC_PROG_AWK
 
@@ -94,62 +99,62 @@ AC_CHECK_FUNCS(vsnprintf snprintf vsprintf mkstemp)
 # Macro definitions
 # ===========================================================================
 
-# _bor_EXECUTE_IFELSE_BODY(COMMAND)
+# _sdcc_EXECUTE_IFELSE_BODY(COMMAND)
 # -----------------------
 # Shell function body for _AC_EXECUTE_IFELSE.
-m4_define([_bor_EXECUTE_IFELSE_BODY],
+m4_define([_sdcc_EXECUTE_IFELSE_BODY],
 [  AS_LINENO_PUSH([$[]1])
   AS_IF([_AC_DO_STDERR([$1 $2]) > conftest.out && {
-	 test ! -s conftest.err
+         test ! -s conftest.err
        }],
       [ac_retval=0],
       [ac_retval=1])
   AS_LINENO_POP
-])# _bor_EXECUTE_IFELSE_BODY
+])# _sdcc_EXECUTE_IFELSE_BODY
 
-# bor_EXECUTE_IFELSE(COMMAND[ACTION-IF-TRUE], [ACTION-IF-FALSE])
+# sdcc_EXECUTE_IFELSE(COMMAND[ACTION-IF-TRUE], [ACTION-IF-FALSE])
 # ----------------------------------------------------------------
 # Try to execute COMMAND.
-AC_DEFUN([bor_EXECUTE_IFELSE],
+AC_DEFUN([sdcc_EXECUTE_IFELSE],
 [_$0_BODY($1)
   AS_IF([test "$ac_retval" = 0],
     [$2],
     [$3])
 rm conftest.err conftest.out
-])# bor_EXECUTE_IFELSE
+])# sdcc_EXECUTE_IFELSE
 
 # Check whether the compiler for the current language is SunPRO.
 
-AC_DEFUN([bor_IS_SUNPRO],
+AC_DEFUN([sdcc_IS_SUNPRO],
 [AC_CACHE_CHECK([whether we are using the SunPRO _AC_LANG compiler],
-  [bor_cv_[]_AC_LANG_ABBREV[]_compiler_sunpro],
+  [sdcc_cv_[]_AC_LANG_ABBREV[]_compiler_sunpro],
   [_AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[#if !defined __SUNPRO_C && !defined __SUNPRO_CC
        choke me
 #endif
 ]])],
-    [bor_compiler_sunpro=yes],
-    [bor_compiler_sunpro=no])
-bor_cv_[]_AC_LANG_ABBREV[]_compiler_sunpro=$bor_compiler_sunpro
+    [sdcc_cv_[]_AC_LANG_ABBREV[]_compiler_sunpro=yes],
+    [sdcc_cv_[]_AC_LANG_ABBREV[]_compiler_sunpro=no])
 ])])
 
-# bor_IS_VALID_OPTION macro checks if the current compiler, selected by 
+# sdcc_IS_VALID_OPTION macro checks if the current compiler, selected by 
 # AC_LANG, supports option specified as the 1st parameter. The test fails if
 # the compiler returns an error or in case something is writeen to stderr.
-# For example: bor_VALID_OPT(fPIC)
+# For example: sdcc_VALID_OPT(-fPIC)
 
-AC_DEFUN([bor_IS_VALID_OPTION],
-[ac_test_[]_AC_LANG_PREFIX[]FLAGS=${[]_AC_LANG_PREFIX[]FLAGS+set}
-bor_save_[]_AC_LANG_PREFIX[]FLAGS=$[]_AC_LANG_PREFIX[]FLAGS
-AC_CACHE_CHECK(whether _AC_LANG accepts -$1, bor_cv_[]_AC_LANG_ABBREV[]_$1,
-  [bor_save_[]_AC_LANG_ABBREV[]_werror_flag=$ac_[]_AC_LANG_ABBREV[]_werror_flag
+AC_DEFUN([sdcc_IS_VALID_OPTION],
+[arg1=`echo $1 | sed -e"s/^-*//" -e"s/-/_/"`
+ac_test_[]_AC_LANG_PREFIX[]FLAGS=${[]_AC_LANG_PREFIX[]FLAGS+set}
+sdcc_save_[]_AC_LANG_PREFIX[]FLAGS=$[]_AC_LANG_PREFIX[]FLAGS
+AC_CACHE_CHECK(whether _AC_LANG accepts $1, sdcc_cv_[]_AC_LANG_ABBREV[]_$arg1,
+  [sdcc_save_[]_AC_LANG_ABBREV[]_werror_flag=$ac_[]_AC_LANG_ABBREV[]_werror_flag
    ac_[]_AC_LANG_ABBREV[]_werror_flag=yes
    
-   []_AC_LANG_PREFIX[]FLAGS="-$1"
+   []_AC_LANG_PREFIX[]FLAGS="$1"
    AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
-     [bor_cv_[]_AC_LANG_ABBREV[]_$1=yes],
-     [bor_cv_[]_AC_LANG_ABBREV[]_$1=no])
-   ac_[]_AC_LANG_ABBREV[]_werror_flag=$bor_save_[]_AC_LANG_ABBREV[]_werror_flag])
-   []_AC_LANG_PREFIX[]FLAGS=$bor_save_[]_AC_LANG_PREFIX[]FLAGS
+     [eval sdcc_cv_[]_AC_LANG_ABBREV[]_$arg1=yes],
+     [eval sdcc_cv_[]_AC_LANG_ABBREV[]_$arg1=no])
+   ac_[]_AC_LANG_ABBREV[]_werror_flag=$sdcc_save_[]_AC_LANG_ABBREV[]_werror_flag])
+   []_AC_LANG_PREFIX[]FLAGS=$sdcc_save_[]_AC_LANG_PREFIX[]FLAGS
 ])
 
 # This macro expands DIR and assigns it to RET.
@@ -376,14 +381,14 @@ if test "$ac_cv_c_compiler_gnu" = "yes"; then
   rm -f _test_.*)
 
   # This is the first time when CFLAGS are set/modified!!
-  bor_IS_VALID_OPTION(ggdb)
-  if test "$bor_cv_c_ggdb" = "yes"; then
+  sdcc_IS_VALID_OPTION(-ggdb)
+  if test "$sdcc_cv_c_ggdb" = "yes"; then
     CFLAGS="-ggdb ${CFLAGS}"
     CXXFLAGS="-ggdb ${CXXFLAGS}"
   fi
 
-  bor_IS_VALID_OPTION(pipe)
-  if test "$bor_cv_c_pipe" = "yes"; then
+  sdcc_IS_VALID_OPTION(-pipe)
+  if test "$sdcc_cv_c_pipe" = "yes"; then
     CFLAGS="-pipe ${CFLAGS}"
     # Don't use "-pipe" on x86 Solaris g++, since src/z80/ralloc2.cc dies with:
     # Assembler: ralloc2.cc
@@ -397,8 +402,8 @@ if test "$ac_cv_c_compiler_gnu" = "yes"; then
   C99_FLAG="--std=c99"
   MAKEDEP="$CC $sdcc_cv_MM"
 else
-  bor_IS_SUNPRO
-  if test "$bor_cv_c_compiler_sunpro" = "yes"; then
+  sdcc_IS_SUNPRO
+  if test "$sdcc_cv_c_compiler_sunpro" = "yes"; then
     C99_FLAG="-xc99"
     CFLAGS="-xO2 ${C99_FLAG} ${CFLAGS}"
     CXXFLAGS="-xO2 ${CXXFLAGS}"
@@ -411,17 +416,49 @@ AC_SUBST(MAKEDEP)
 AC_SUBST(WALL_FLAG)
 AC_SUBST(C99_FLAG)
 
-# does AR accept the -S flag
-echo '!<arch>' > conftest.ar
-AC_MSG_CHECKING([whether $AR accepts -S])
-bor_EXECUTE_IFELSE([$AR -S -t conftest.ar],
-  [AC_MSG_RESULT([yes])
-    AR_S_FLAG="-S"],
-  [AC_MSG_RESULT([no])
-    AR_S_FLAG=""])
-rm conftest.ar
-AC_SUBST(AR_S_FLAG)
+# SDCC_C_UNNAMED_STRUCT_TAG ()
+# chech whether C compiler supports tag in unnamed struct
+# -------------------------------------------------------------------------
+AC_DEFUN([SDCC_C_UNNAMED_STRUCT_TAG],
+[
+  if test "$ac_cv_c_compiler_gnu" = "yes"; then
+    sdcc_IS_VALID_OPTION(-fms-extensions)
+  else
+    sdcc_cv_c_fms_extensions=no
+  fi
+  AC_CACHE_CHECK(whether C supports tag in unnamed struct, sdcc_cv_c_unnamed_struct_tag,
+    if test "$sdcc_cv_c_fms_extensions" = "yes"; then
+      CFLAGS="-fms-extensions ${CFLAGS}"
+    fi
 
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+      [
+struct s1 {
+  int a;
+};
+
+struct s2 {
+  struct s1;
+  int b;
+};
+      ],
+      [
+  struct s2 s;
+
+  s.a = 1;
+  s.b = 2;
+      ])],
+      [
+        sdcc_cv_[]_AC_LANG_ABBREV[]_unnamed_struct_tag=yes
+        AC_DEFINE_UNQUOTED(UNNAMED_STRUCT_TAG, 1, [Define to 1 if c supports tags in unnamed struct.])
+      ],
+      [
+        sdcc_cv_[]_AC_LANG_ABBREV[]_unnamed_struct_tag=no
+      ])
+  )
+])
+
+SDCC_C_UNNAMED_STRUCT_TAG
 
 # Checks for typedefs, structures, and compiler characteristics.
 # ===========================================================================
@@ -431,6 +468,7 @@ AC_CHECK_SIZEOF(char)
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(long long)
 AC_C_CHAR_UNSIGNED
 
 type_name()
@@ -451,6 +489,10 @@ type_name()
     echo "long"
     exit
   fi
+  if expr "$ac_cv_sizeof_long_long" '>=' "$1" >/dev/null; then
+    echo "long long"
+    exit
+  fi
   echo "long"
 }
 
@@ -468,87 +510,23 @@ AC_MSG_RESULT($TYPE_WORD)
 AC_MSG_CHECKING(type name for dword)
 TYPE_DWORD=`type_name 4`
 AC_MSG_RESULT($TYPE_DWORD)
+AC_MSG_CHECKING(type name for qword)
+TYPE_QWORD=`type_name 8`
+AC_MSG_RESULT($TYPE_QWORD)
 
 AC_DEFINE_UNQUOTED(TYPE_BYTE,  $TYPE_BYTE,  [XXX])
 AC_DEFINE_UNQUOTED(TYPE_WORD,  $TYPE_WORD,  [XXX])
 AC_DEFINE_UNQUOTED(TYPE_DWORD, $TYPE_DWORD, [XXX])
+AC_DEFINE_UNQUOTED(TYPE_QWORD, $TYPE_QWORD, [XXX])
 
 AC_DEFINE_UNQUOTED(TYPE_UBYTE,  unsigned $TYPE_CHAR,  [XXX])
 AC_DEFINE_UNQUOTED(TYPE_UWORD,  unsigned $TYPE_WORD,  [XXX])
 AC_DEFINE_UNQUOTED(TYPE_UDWORD, unsigned $TYPE_DWORD, [XXX])
+AC_DEFINE_UNQUOTED(TYPE_UQWORD, unsigned $TYPE_QWORD, [XXX])
 
-
-# SDCC_BUILD_BIGENDIAN ([ACTION-IF-TRUE], [ACTION-IF-FALSE], [ACTION-IF-UNKNOWN])
-# -------------------------------------------------------------------------
-AC_DEFUN([SDCC_BUILD_BIGENDIAN],
-[AC_CACHE_CHECK(whether host machine byte ordering is bigendian, sdcc_cv_build_bigendian,
-[# See if sys/param.h defines the BYTE_ORDER macro.
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <sys/types.h>
-#include <sys/param.h>
-],
-[#if  ! (defined BYTE_ORDER && defined BIG_ENDIAN && defined LITTLE_ENDIAN \
-        && BYTE_ORDER && BIG_ENDIAN && LITTLE_ENDIAN)
- bogus endian macros
-#endif
-])],
-[# It does; now see whether it defined to BIG_ENDIAN or not.
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <sys/types.h>
-#include <sys/param.h>
-], [#if BYTE_ORDER != BIG_ENDIAN
- not big endian
-#endif
-])], [sdcc_cv_build_bigendian=yes], [sdcc_cv_build_bigendian=no])],
-[# It does not; compile a test program.
-AC_RUN_IFELSE(
-[AC_LANG_PROGRAM([AC_INCLUDES_DEFAULT], [[
-  /* Are we little or big endian?  From Harbison&Steele.  */
-  union
-  {
-    long int l;
-    char c[sizeof (long int)];
-  } u;
-  u.l = 1;
-  return u.c[sizeof (long int) - 1] == 1;
-]])],
-              [sdcc_cv_build_bigendian=no],
-              [sdcc_cv_build_bigendian=yes],
-[# try to guess the endianness by grepping values into an object file
-  sdcc_cv_build_bigendian=unknown
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
-[[short int ascii_mm[] = { 0x4249, 0x4765, 0x6E44, 0x6961, 0x6E53, 0x7953, 0 };
-short int ascii_ii[] = { 0x694C, 0x5454, 0x656C, 0x6E45, 0x6944, 0x6E61, 0 };
-void _ascii () { char *s = (char *) ascii_mm; s = (char *) ascii_ii; }
-short int ebcdic_ii[] = { 0x89D3, 0xE3E3, 0x8593, 0x95C5, 0x89C4, 0x9581, 0 };
-short int ebcdic_mm[] = { 0xC2C9, 0xC785, 0x95C4, 0x8981, 0x95E2, 0xA8E2, 0 };
-void _ebcdic () { char *s = (char *) ebcdic_mm; s = (char *) ebcdic_ii; }]],
-[[ _ascii (); _ebcdic (); ]])],
-[if grep BIGenDianSyS conftest.$ac_objext >/dev/null ; then
-  sdcc_cv_build_bigendian=yes
-fi
-if grep LiTTleEnDian conftest.$ac_objext >/dev/null ; then
-  if test "$sdcc_cv_build_bigendian" = unknown; then
-    sdcc_cv_build_bigendian=no
-  else
-    # finding both strings is unlikely to happen, but who knows?
-    sdcc_cv_build_bigendian=unknown
-  fi
-fi])])])])
-case $sdcc_cv_build_bigendian in
-  yes)
-    m4_default([$1],
-      [AC_DEFINE([BUILD_WORDS_BIGENDIAN], 1,
-        [Define to 1 if your processor stores words with the most significant
-         byte first (like Motorola and SPARC, unlike Intel and VAX).])]) ;;
-  no)
-    $2 ;;
-  *)
-    m4_default([$3],
-      [AC_MSG_ERROR([unknown endianness
-presetting sdcc_cv_build_bigendian=no (or yes) will help])]) ;;
-esac
-])# SDCC_BUILD_BIGENDIAN
-
-SDCC_BUILD_BIGENDIAN
+# Checking whether byte ordering is bigendian
+# ===========================================================================
+AC_C_BIGENDIAN
 
 # Set standard installation paths
 # ===========================================================================
@@ -691,7 +669,7 @@ AC_DEFINE_UNQUOTED(STD_LONG_LIB,  "liblong", [XXX])
 AC_DEFINE_UNQUOTED(STD_FP_LIB,    "libfloat", [XXX])
 AC_DEFINE_UNQUOTED(STD_DS390_LIB, "libds390", [XXX])
 AC_DEFINE_UNQUOTED(STD_DS400_LIB, "libds400", [XXX])
-AC_DEFINE_UNQUOTED(STD_XA51_LIB,  "libxa51", [XXX])
+####AC_DEFINE_UNQUOTED(STD_XA51_LIB,  "libxa51", [XXX])
 
 # SDCC runtime environment variables
 sdcc_dir_name="SDCC_HOME"
@@ -706,8 +684,7 @@ AC_DEFINE_UNQUOTED(SDCC_LIB_NAME, "${sdcc_lib_name}", [XXX])
 # add include guard and custom stuff to sdccconf.h
 AH_TOP([#ifndef SDCCCONF_HEADER
 #define SDCCCONF_HEADER])
-AH_BOTTOM([#include "custom.h"
-#endif /* SDCCCONF_HEADER */])
+AH_BOTTOM([#endif /* SDCCCONF_HEADER */])
 
 # Port selection helper
 # ===========================================================================
@@ -804,27 +781,40 @@ AC_DEFUN([AC_DO_PORT_ENABLER], [
 rm -f ports.all ports.build
 
 # Supported targets
-AC_DO_PORT(mcs51, mcs51, MCS51, [Excludes the Intel mcs51 port])
-AC_DO_PORT(z80,   z80,   Z80,   [Excludes the z80 port])
-AC_DO_PORT(z180,  z80,   Z180,  [Excludes the z180 port])
-AC_DO_PORT(r2k,   z80,   R2K,  [Excludes the r2k port])
-AC_DO_PORT(gbz80, z80,   GBZ80, [Excludes the Gameboy gbz80 port])
-AC_DO_PORT(ds390, ds390, DS390, [Excludes the DS390 port])
+AC_DO_PORT(mcs51,  mcs51,  MCS51,  [Excludes the Intel mcs51 port])
+AC_DO_PORT(z80,    z80,    Z80,    [Excludes the Z80 port])
+AC_DO_PORT(z180,   z80,    Z180,   [Excludes the Z180 port])
+AC_DO_PORT(r2k,    z80,    R2K,    [Excludes the Rabbit 2000 port])
+AC_DO_PORT(r3ka,   z80,    R3KA,   [Excludes the Rabbit 3000A port])
+AC_DO_PORT(gbz80,  z80,    GBZ80,  [Excludes the Gameboy gbz80 port])
+AC_DO_PORT(tlcs90, z80,    TLCS90, [Excludes the TLCS-90 port])
+AC_DO_PORT(ds390,  ds390,  DS390,  [Excludes the DS390 port])
 AC_DEFINE_UNQUOTED(OPT_DISABLE_TININative, $OPT_DISABLE_DS390, [XXX])
-AC_DO_PORT(ds400, ds400, DS400, [Excludes the DS400 port])
-AC_DO_PORT(pic14, pic14, PIC14, [Excludes the PIC14 port])
-AC_DO_PORT(pic16, pic16, PIC16, [Excludes the PIC16 port])
-AC_DO_PORT(hc08,  hc08,  HC08,  [Excludes the HC08 port])
+AC_DO_PORT(ds400,  ds400,  DS400,  [Excludes the DS400 port])
+AC_DO_PORT(pic14,  pic14,  PIC14,  [Excludes the PIC14 port])
+AC_DO_PORT(pic16,  pic16,  PIC16,  [Excludes the PIC16 port])
+AC_DO_PORT(hc08,   hc08,   HC08,   [Excludes the HC08 port])
+AC_DO_PORT(s08,    hc08,   S08,    [Excludes the S08 port])
+AC_DO_PORT(stm8,   stm8,   STM8,   [Excludes the STM8 port])
 
 # Unsupported targets
-AC_DO_PORT_ENABLER(avr,   avr,   AVR,   [Includes the AVR port (disabled by default)])
-AC_DO_PORT_ENABLER(xa51,  xa51,  XA51,  [Includes the XA51 port (disabled by default)])
+####AC_DO_PORT_ENABLER(avr,   avr,   AVR,   [Includes the AVR port (disabled by default)])
+OPT_DISABLE_AVR=1
+AC_DEFINE_UNQUOTED(OPT_DISABLE_AVR, ${OPT_DISABLE_AVR}, [Define to 1 to disable the AVR port])
+AC_SUBST(OPT_DISABLE_AVR)
+
+####AC_DO_PORT_ENABLER(xa51,  xa51,  XA51,  [Includes the XA51 port (disabled by default)])
+OPT_DISABLE_XA51=1
+AC_DEFINE_UNQUOTED(OPT_DISABLE_XA51, ${OPT_DISABLE_XA51}, [Define to 1 to disable the XA51 port])
+AC_SUBST(OPT_DISABLE_XA51)
 
 AC_DO_DISABLER(ucsim,      UCSIM,      [Disables configuring and building of ucsim])
 AC_DO_DISABLER(device-lib, DEVICE_LIB, [Disables building device libraries])
 AC_DO_DISABLER(packihx,    PACKIHX,    [Disables building packihx])
 AC_DO_DISABLER(sdcpp,      SDCPP,      [Disables building sdcpp])
 AC_DO_DISABLER(sdcdb,      SDCDB,      [Disables building sdcdb])
+AC_DO_DISABLER(sdbinutils, SDBINUTILS, [Disables configuring and building of sdbinutils])
+AC_DO_DISABLER(non-free,   NON_FREE,   [Disables non-free runtime library parts])
 
 AC_DO_ENABLER(doc,   DOC,   [Enables building the documentation])
 AC_CHECK_PROG([LYX],        [lyx],        [lyx],        [:])
@@ -861,12 +851,14 @@ test $OPT_DISABLE_SDCPP   = 0 && AC_CONFIG_SUBDIRS(support/cpp)
 test $OPT_DISABLE_PACKIHX = 0 && AC_CONFIG_SUBDIRS(support/packihx)
 test $OPT_DISABLE_UCSIM   = 0 && AC_CONFIG_SUBDIRS(sim/ucsim)
 test $OPT_DISABLE_SDCDB   = 0 && AC_CONFIG_SUBDIRS(debugger/mcs51)
+test $OPT_DISABLE_SDBINUTILS = 0 && AC_CONFIG_SUBDIRS(support/sdbinutils)
 AC_CONFIG_FILES([doc/Makefile])
 
-test $OPT_DISABLE_AVR = 0 && AC_CONFIG_FILES([src/avr/Makefile])
+####test $OPT_DISABLE_AVR = 0 && AC_CONFIG_FILES([src/avr/Makefile])
 
 if test $OPT_DISABLE_DS390 = 0; then
-  AC_CONFIG_FILES([src/ds390/Makefile])
+  AC_CONFIG_FILES([src/ds390/Makefile
+                   sdas/as8xcxxx/Makefile])
   test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/ds390/Makefile])
 fi
 
@@ -875,10 +867,11 @@ if test $OPT_DISABLE_DS400 = 0; then
   test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/ds400/Makefile])
 fi
 
-if test $OPT_DISABLE_HC08 = 0; then
+if test $OPT_DISABLE_HC08 = 0 || test $OPT_DISABLE_S08 = 0; then
   AC_CONFIG_FILES([src/hc08/Makefile
                    sdas/as6808/Makefile])
-  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/hc08/Makefile])
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/hc08/Makefile
+                                                       device/lib/s08/Makefile])
 fi
 
 if test $OPT_DISABLE_MCS51 = 0; then
@@ -893,16 +886,22 @@ fi
 
 if test $OPT_DISABLE_PIC14 = 0; then
   AC_CONFIG_FILES(src/pic14/Makefile)
-  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_SUBDIRS(device/lib/pic14 device/non-free/lib/pic14)
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_SUBDIRS(device/lib/pic14)
+fi
+if test $OPT_DISABLE_PIC14 = 0 && test $OPT_DISABLE_NON_FREE = 0; then
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_SUBDIRS(device/non-free/lib/pic14)
 fi
 if test $OPT_DISABLE_PIC16 = 0; then
   AC_CONFIG_FILES(src/pic16/Makefile)
-  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_SUBDIRS(device/lib/pic16 device/non-free/lib/pic16)
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_SUBDIRS(device/lib/pic16)
+fi
+if test $OPT_DISABLE_PIC16 = 0 && test $OPT_DISABLE_NON_FREE = 0; then
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_SUBDIRS(device/non-free/lib/pic16)
 fi
 
-test $OPT_DISABLE_XA51 = 0 && AC_CONFIG_FILES([src/xa51/Makefile])
+####test $OPT_DISABLE_XA51 = 0 && AC_CONFIG_FILES([src/xa51/Makefile])
 
-if test $OPT_DISABLE_Z80 = 0 || test $OPT_DISABLE_Z180 = 0 || test $OPT_DISABLE_R2K = 0 || test $OPT_DISABLE_GBZ80 = 0; then
+if test $OPT_DISABLE_Z80 = 0 || test $OPT_DISABLE_Z180 = 0 || test $OPT_DISABLE_R2K = 0 || test $OPT_DISABLE_R3KA = 0 || test $OPT_DISABLE_GBZ80 = 0 || test $OPT_DISABLE_TLCS90 = 0; then
   AC_CONFIG_FILES([src/z80/Makefile])
 fi
 
@@ -912,24 +911,35 @@ if test $OPT_DISABLE_Z80 = 0 || test $OPT_DISABLE_Z180 = 0; then
                                                        device/lib/z180/Makefile])
 fi
 
+if test $OPT_DISABLE_R2K = 0 || test $OPT_DISABLE_R3KA = 0; then
+  AC_CONFIG_FILES([sdas/asrab/Makefile])
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/r2k/Makefile
+                                                       device/lib/r3ka/Makefile])
+fi
+
+if test $OPT_DISABLE_TLCS90 = 0; then
+  AC_CONFIG_FILES([sdas/astlcs90/Makefile])
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/tlcs90/Makefile])
+fi
+
 if test $OPT_DISABLE_GBZ80 = 0; then
   AC_CONFIG_FILES([sdas/asgb/Makefile])
   test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/gbz80/Makefile])
 fi
 
-if test $OPT_DISABLE_R2K = 0; then
-  AC_CONFIG_FILES([sdas/asrab/Makefile])
-  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/r2k/Makefile])
+if test $OPT_DISABLE_STM8 = 0; then
+  AC_CONFIG_FILES([src/stm8/Makefile
+                   sdas/asstm8/Makefile])
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/stm8/Makefile])
 fi
 
-test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/Makefile device/non-free/lib/Makefile])
+test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/Makefile])
+test $OPT_DISABLE_DEVICE_LIB = 0 && test $OPT_DISABLE_NON_FREE = 0 && AC_CONFIG_FILES([device/non-free/lib/Makefile])
 
 AC_CONFIG_FILES([main.mk:main_in.mk
 src/Makefile
 device/include/Makefile
-device/non-free/include/Makefile
 sdas/linksrc/Makefile
-support/sdranlib/Makefile
 support/librarian/Makefile
 support/makebin/Makefile
 support/regression/Makefile
@@ -939,6 +949,9 @@ support/regression/ports/host/spec.mk:support/regression/ports/host/spec.mk.in
 Makefile
 Makefile.common:Makefile.common.in
 ])
+if test $OPT_DISABLE_NON_FREE = 0; then
+  AC_CONFIG_FILES([device/non-free/include/Makefile])
+fi
 AC_OUTPUT
 
 # I found no better place
@@ -970,33 +983,39 @@ adl_NORMALIZE_PATH_MSG(${expanded_datadir}/${norm_non_free_lib_dir_suffix}, [non
 AC_MSG_RESULT([
 sdcc ${VERSION} is now configured for
 
-  Build:                ${build_alias}
-  Host:                 ${host_alias}
+  Build:                ${build}
+  Host:                 ${host}
   Source directory:     ${srcdir}
   C compiler:           ${CC}
   CFLAGS:               ${CFLAGS}
   C++ compiler:         ${CXX}
   CXXFLAGS:             ${CXXFLAGS}
+  CPPFLAGS:             ${CPPFLAGS}
+  LDFLAGS:              ${LDFLAGS}
 
   ENABLED Ports:
-    avr                 ${enable_avr_port}
     ds390               ${enable_ds390_port}
     ds400               ${enable_ds400_port}
-    gbz80               ${enable_gbz80_port}
     hc08                ${enable_hc08_port}
+    s08                 ${enable_s08_port}
     mcs51               ${enable_mcs51_port}
     pic14               ${enable_pic14_port}
     pic16               ${enable_pic16_port}
-    xa51                ${enable_xa51_port}
     z80                 ${enable_z80_port}
     z180                ${enable_z180_port}
     r2k                 ${enable_r2k_port}
+    r3ka                ${enable_r3ka_port}
+    gbz80               ${enable_gbz80_port}
+    tlcs90              ${enable_tlcs90_port}
+    stm8                ${enable_stm8_port}
 
+  Disable non-free lib: ${OPT_DISABLE_NON_FREE}
   Disable packihx:      ${OPT_DISABLE_PACKIHX}
   Disable ucsim:        ${OPT_DISABLE_UCSIM}
   Disable device lib:   ${OPT_DISABLE_DEVICE_LIB}
   Disable sdcpp:        ${OPT_DISABLE_SDCPP}
   Disable sdcdb:        ${OPT_DISABLE_SDCDB}
+  Disable sdbinutil:    ${OPT_DISABLE_SDBINUTILS}
   Enable documentation: ${OPT_ENABLE_DOC}
   Enable libgc:         ${OPT_ENABLE_LIBGC}
 

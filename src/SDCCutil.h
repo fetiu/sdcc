@@ -46,7 +46,7 @@ void fputStrSet (FILE * fp, set * list);
 /** Prepend / append given strings to each item of string set. The result is in a
  *  new string set.
  */
-set *appendStrSet (set * list, const char *pre, const char *post);
+set *processStrSet (set * list, const char *pre, const char *post, char *(*file) (const char *));
 
 /** Given a set returns a string containing all of the strings seperated
  *  by spaces. The returned string is on the heap.
@@ -175,6 +175,6 @@ void free_pragma_token (struct pragma_token_s *token);
 unsigned char hexEscape (const char **src);
 unsigned char universalEscape (const char **src, unsigned int n);
 unsigned char octalEscape (const char **src);
-int copyStr (char *dest, const char *src);
+const char *copyStr (const char *src, size_t *size);
 
 #endif

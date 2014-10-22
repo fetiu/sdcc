@@ -7,7 +7,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -15,7 +15,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -27,7 +27,8 @@
    not however invalidate any other reasons why the executable file
    might be covered by the GNU General Public License.
 -------------------------------------------------------------------------*/
-#include "string.h" 
+#include <string.h>
+#include <stdint.h>
 #include <sdcc-lib.h>
 
 #ifndef _SDCC_PORT_PROVIDES_MEMMOVE
@@ -36,17 +37,13 @@
 
 #if !_SDCC_PORT_PROVIDES_MEMMOVE
 
-void * memmove (
-	void * dst,
-	void * src,
-	size_t acount
-	) 
+void * memmove (void * dst, const void * src, size_t acount)
 {
 	void * ret = dst;
 	char * d;
-	char * s;
+	const char * s;
 
-	if (((int)src < (int)dst) && ((((int)src)+acount) > (int)dst)) {
+	if ((uintptr_t)src < (uintptr_t)dst) {
 		/*
 		 * copy from higher addresses to lower addresses
 		 */
@@ -70,4 +67,3 @@ void * memmove (
 	return(ret);
 }
 #endif
-

@@ -5,7 +5,7 @@
 ;
 ;  This library is free software; you can redistribute it and/or modify it
 ;  under the terms of the GNU General Public License as published by the
-;  Free Software Foundation; either version 2.1, or (at your option) any
+;  Free Software Foundation; either version 2, or (at your option) any
 ;  later version.
 ;
 ;  This library is distributed in the hope that it will be useful,
@@ -26,8 +26,8 @@
 ;   might be covered by the GNU General Public License.
 ;--------------------------------------------------------------------------
 
-        .module crt0
-       	.globl	_main
+	.module crt0
+	.globl	_main
 
 	.area	_HEADER (ABS)
 	;; Reset vector
@@ -51,8 +51,8 @@
 
 	.org	0x100
 init:
-	;; Stack at the top of memory.
-	ld	sp,#0xffff
+	;; Set stack pointer directly above top of memory.
+	ld	sp,#0x0000
 
         ;; Initialise global variables
         call    gsinit
@@ -62,30 +62,41 @@ init:
 	;; Ordering of segments for the linker.
 	.area	_HOME
 	.area	_CODE
-        .area   _GSINIT
-        .area   _GSFINAL
+	.area	_INITIALIZER
+	.area   _GSINIT
+	.area   _GSFINAL
 
 	.area	_DATA
+	.area	_INITIALIZED
 	.area	_BSEG
-        .area   _BSS
-        .area   _HEAP
+	.area   _BSS
+	.area   _HEAP
 
-        .area   _CODE
+	.area   _CODE
 __clock::
 	ld	a,#2
-        rst     0x08
+	rst     0x08
 	ret
 
 _exit::
 	;; Exit - special code to the emulator
 	ld	a,#0
-        rst     0x08
+	rst     0x08
 1$:
 	halt
 	jr	1$
 
-        .area   _GSINIT
+	.area   _GSINIT
 gsinit::
+	ld	bc, #l__INITIALIZER
+	ld	a, b
+	or	a, c
+	jr	Z, gsinit_next
+	ld	de, #s__INITIALIZED
+	ld	hl, #s__INITIALIZER
+	ldir
+gsinit_next:
 
-        .area   _GSFINAL
-        ret
+	.area   _GSFINAL
+	ret
+

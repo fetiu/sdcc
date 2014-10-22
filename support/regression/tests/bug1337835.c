@@ -4,19 +4,15 @@
 
 #include <testfwk.h>
 
-#ifdef SDCC
+#ifdef __SDCC
 #pragma std_sdcc99
 #endif
 
 #include <stdbool.h>
 
-#ifndef BOOL
-#define BOOL bool
-#endif
-
 char e;
 
-void foo (unsigned long ul, BOOL b, char c) REENTRANT
+void foo (unsigned long ul, bool b, char c) REENTRANT
 {
 	if (b && (long) ul < 0)
 		e = 0;

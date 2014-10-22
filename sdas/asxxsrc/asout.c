@@ -1,20 +1,27 @@
-/* asout.c
+/* asout.c */
 
-   Copyright (C) 1989-1995 Alan R. Baldwin
-   721 Berkeley St., Kent, Ohio 44240
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 3, or (at your option) any
-later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+/*
+ *  Copyright (C) 1989-2009  Alan R. Baldwin
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * Alan R. Baldwin
+ * 721 Berkeley St.
+ * Kent, Ohio  44240
+ *
+ */
 
 /*
  * 28-Oct-97 JLH:
@@ -22,9 +29,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *           - Added outr11 to support 8051's 11 bit destination address
  */
 
-#include <stdio.h>
-#include <setjmp.h>
-#include <string.h>
 #include "sdas.h"
 #include "asxxxx.h"
 
@@ -41,7 +45,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *
  *      The object module contains the following designators:
  *
- *              [XDQ][HL]
+ *              [XDQ][HL][234]
  *                      X        Hexadecimal radix
  *                      D        Decimal radix
  *                      Q        Octal radix
@@ -49,20 +53,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *                      H        Most significant byte first
  *                      L        Least significant byte first
  *
- *              H        Header
- *              M        Module
- *              A        Area
- *              S        Symbol
- *              T        Object code
- *              R        Relocation information
- *              P        Paging information
+ *                      2        16-Bit Relocatable Addresses/Data
+ *                      3        24-Bit Relocatable Addresses/Data
+ *                      4        32-Bit Relocatable Addresses/Data
+ *
+ *              H       Header
+ *              M       Module
+ *              A       Area
+ *              S       Symbol
+ *              T       Object code
+ *              R       Relocation information
+ *              P       Paging information
  *
  *
  *      (1)     Radix Line
  *
- *      The  first  line  of  an object module contains the [XDQ][HL]
- *      format specifier (i.e.  XH indicates  a  hexadecimal  file  with
- *      most significant byte first) for the following designators.
+ *      The  first  line  of  an object module contains the [XDQ][HL][234]
+ *      format specifier (i.e.  XH2 indicates  a  hexadecimal  file  with
+ *      most significant byte first and 16-bit addresses) for the
+ *      following designators.
  *
  *
  *      (2)     Header Line
@@ -104,13 +113,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *              A label size ss flags ff
  *
  *      The  area  line  defines the area label, the size (ss) of the
- *      area in bytes, and the area flags (ff).  The area flags  specify
- *      the ABS, REL, CON, OVR, and PAG parameters:
+ *      area in bytes, and the area flags (ff).  The area flags
+ *      specify the area properties:
  *
  *              OVR/CON (0x04/0x00 i.e.  bit position 2)
- *
  *              ABS/REL (0x08/0x00 i.e.  bit position 3)
- *
  *              PAG (0x10 i.e.  bit position 4)
  *
  *
@@ -144,11 +151,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *              7.  bit 6 normal(0x00)/page 'nnn'(0x40) reference
  *              8.  bit 7 normal(0x00)/MSB of value
  *
- *      2.  n2  is  a byte index into the corresponding (i.e.  pre-
- *              ceeding) T line data (i.e.  a pointer to the data to be
- *              updated  by  the  relocation).   The T line data may be
- *              1-byte or  2-byte  byte  data  format  or  2-byte  word
- *              format.
+ *      2.  n2  is  a byte index into the corresponding
+ *              (i.e.  preceeding) T line data (i.e.  a pointer to
+ *              the data to be updated  by  the  relocation).
+ *              The T line data may be 1-byte or 2-byte byte data
+ *              format or 2-byte word format.
  *
  *      3.  xx xx  is the area/symbol index for the area/symbol be-
  *              ing referenced.  the corresponding area/symbol is found
@@ -184,121 +191,135 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
  *      asout.c contains the following functions:
  *              int     lobyte()
  *              int     hibyte()
+ *              int     thrdbyte()
+ *              int     frthbyte()
  *              VOID    out()
- *              VOID    outab()
  *              VOID    outall()
  *              VOID    outarea()
- *              VOID    outaw()
  *              VOID    outbuf()
  *              VOID    outchk()
- *              VOID    outdot()
  *              VOID    outdp()
+ *              VOID    outdot()
  *              VOID    outgsd()
+ *              VOID    outsym()
+ *              VOID    outab()
+ *              VOID    outaw()
+ *              VOID    outa3b()
+ *              VOID    outa4b()
+ *              VOID    outaxb()
+ *              VOID    outatxb()
  *              VOID    outrb()
  *              VOID    outrw()
  *              VOID    outr11()
- *              VOID    outsym()
  *              VOID    out_lb()
  *              VOID    out_lw()
- *              VOID    out_rw()
- *              VOID    out_tw()
- *
- *      The module asout.c contains the following local variables:
- *              int     rel[]           relocation data for code/data array
- *              int *   relp            pointer to rel array
- *              int     txt[]           assembled code/data array
- *              int *   txtp            pointer to txt array
+ *              VOID    out_l3b()
+ *              VOID    out_l4b()
+ *              VOID    out_lxb()
+ *              VOID    out_txb()
  */
 
-#define  NTXT   16
-#define  NREL   16
-
-char     txt[NTXT];
-char     rel[NREL];
-
-char    *txtp = &txt[0];
-char    *relp = &rel[0];
-
-/*)Function     VOID    outab(b)
+/*)Function     VOID    outab(v)
+ *)Function     VOID    outaw(v)
+ *)Function     VOID    outa3b(v)
+ *)Function     VOID    outa4b(v)
  *
- *              int     b               assembler data word
+ *              a_uint  v               assembler data
  *
- *      The function outab() processes a single word of
- *      assembled data in absolute format.
+ *      Dispatch to output routine of 1 to 4 absolute bytes.
  *
  *      local variables:
- *              int *   txtp            pointer to data word
+ *              none
  *
  *      global variables:
- *              int     oflag           -o, generate relocatable output flag
- *              int     pass            assembler pass number
+ *              none
  *
  *      functions called:
- *              VOID    outchk()        asout.c
- *              VOID    out_lb()        asout.c
+ *              VOID    outaxb()        asout.c
  *
  *      side effects:
- *              The current assembly address is incremented by 1.
+ *              Absolute data is processed.
  */
 
 VOID
-outab(int b)
+outab(a_uint v)
 {
-        if (pass == 2) {
-                out_lb(b,0);
-                if (oflag) {
-                        outchk(1, 0);
-                        *txtp++ = lobyte(b);
-                }
-        }
-        ++dot.s_addr;
+        outaxb(1, v);
 }
 
-/*)Function     VOID    outaw(w)
+VOID
+outaw(a_uint v)
+{
+        outaxb(2, v);
+}
+
+VOID
+outa3b(a_uint v)
+{
+        outaxb(3, v);
+}
+
+VOID
+outa4b(a_uint v)
+{
+        outaxb(4, v);
+}
+
+/*)Function     VOID    outaxb(i, v)
  *
- *              int     w               assembler data word
+ *              int     i               output byte count
+ *              a_uint  v               assembler data
  *
- *      The function outaw() processes a single word of
+ *      The function outaxb() processes 1 to 4 bytes of
  *      assembled data in absolute format.
  *
  *      local variables:
- *              int *   txtp            pointer to data word
+ *              int p_bytes
  *
  *      global variables:
+ *              sym     dot             defined as sym[0]
  *              int     oflag           -o, generate relocatable output flag
  *              int     pass            assembler pass number
  *
  *      functions called:
+ *              VOID    outatxb()       asout.c
  *              VOID    outchk()        asout.c
- *              VOID    out_lw()        asout.c
+ *              VOID    out_lxb()       asout.c
  *
  *      side effects:
- *              The current assembly address is incremented by 2.
+ *              The current assembly address is incremented by i.
  */
 
 VOID
-outaw(int w)
+outaxb(int i, a_uint v)
 {
+        int p_bytes;
+
         if (pass == 2) {
-                out_lw(w,0);
+                out_lxb(i, v, 0);
                 if (oflag) {
-                        outchk(2, 0);
-                        out_tw(w);
+                        outchk(i, 0);
+                        outatxb(i, v);
                 }
         }
-        dot.s_addr += 2;
+        /*
+         * Update the Program Counter
+         */
+        p_bytes = 1;
+        dot.s_addr += (i/p_bytes) + (i % p_bytes ? 1 : 0);
 }
 
 /* sdas specific */
-/*)Function     VOID    write_rmode(r)
+/*)Function     VOID    write_rmode(r, n)
  *
  *              int     r               relocation mode
+ *              int     n               byte index
  *
  *      write_rmode puts the passed relocation mode into the
  *      output relp buffer, escaping it if necessary.
  *
  *      global variables:
- *              int *   relp            pointer to rel array
+ *              char *  relp            Pointer to R Line Values
  *
  *      functions called:
  *              VOID    rerr()          assubr.c
@@ -307,7 +328,7 @@ outaw(int w)
  *              relp is incremented appropriately.
  */
 VOID
-write_rmode(int r)
+write_rmode(int r, int n)
 {
     /* We need to escape the relocation mode if it is greater
      * than a byte, or if it happens to look like an escape.
@@ -333,29 +354,101 @@ write_rmode(int r)
     {
         *relp++ = r;
     }
+    *relp++ = n;
 }
-/* sdas specific */
+/* end sdas specific */
+
+/*)Function     VOID    outatxb(i, v)
+ *
+ *              int     i               number of bytes to process
+ *              int     v               assembler data
+ *
+ *      The function outatxb() outputs i bytes
+ *
+ *      local variables:
+ *              none
+ *
+ *      global variables:
+ *              int     hilo            byte order
+ *              char *  txtp            Pointer to T Line Values
+ *
+ *      functions called:
+ *              int     lobyte()        asout.c
+ *              int     hibyte()        asout.c
+ *              int     thrdbyte()      asout.c
+ *              int     frthbyte()      asout.c
+ *
+ *      side effects:
+ *              i bytes are placed into the T Line Buffer.
+ */
+
+VOID
+outatxb(int i, a_uint v)
+{
+        if ((int) hilo) {
+                if (i >= 4) *txtp++ = frthbyte(v);
+                if (i >= 3) *txtp++ = thrdbyte(v);
+                if (i >= 2) *txtp++ = hibyte(v);
+                if (i >= 1) *txtp++ = lobyte(v);
+        } else {
+                if (i >= 1) *txtp++ = lobyte(v);
+                if (i >= 2) *txtp++ = hibyte(v);
+                if (i >= 3) *txtp++ = thrdbyte(v);
+                if (i >= 4) *txtp++ = frthbyte(v);
+        }
+}
 
 /*)Function     VOID    outrb(esp, r)
  *
  *              expr *  esp             pointer to expr structure
  *              int     r               relocation mode
  *
- *      The function outrb() processes a byte of generated code
+ *      Dispatch functions for processing relocatable data.
+ *
+ *      local variables:
+ *              none
+ *
+ *      global variables:
+ *              none
+ *
+ *      functions called:
+ *              int     outrxb()        asout.c
+ *
+ *      side effects:
+ *              relocatable data processed
+ */
+
+VOID
+outrb(struct expr *esp, int r)
+{
+        outrxb(1, esp, r);
+}
+
+
+/*)Function     VOID    outrxb(i, esp, r)
+ *
+ *              int     i               output byte count
+ *              expr *  esp             pointer to expr structure
+ *              int     r               relocation mode
+ *
+ *      The function outrxb() processes 1 to 4 bytes of generated code
  *      in either absolute or relocatable format dependent upon
  *      the data contained in the expr structure esp.  If the
  *      .REL output is enabled then the appropriate information
  *      is loaded into the txt and rel buffers.
  *
  *      local variables:
- *              int     n               symbol/area reference number
- *              int *   relp            pointer to rel array
- *              int *   txtp            pointer to txt array
+ *              int     m               signed value mask
+ *              int     n               unsigned value mask
+ *                                      symbol/area reference number
  *
  *      global variables:
+ *              int     a_bytes         T Line byte count
  *              sym     dot             defined as sym[0]
  *              int     oflag           -o, generate relocatable output flag
  *              int     pass            assembler pass number
+ *              char *  relp            Pointer to R Line Values
+ *              char *  txtp            Pointer to T Line Values
  *
  *      functions called:
  *              VOID    outchk()        asout.c
@@ -364,13 +457,15 @@ write_rmode(int r)
  *              VOID    out_tb()        asout.c
  *
  *      side effects:
- *              The current assembly address is incremented by 1.
+ *              R and T Lines updated.  Listing updated.
+ *              The current assembly address is incremented by i.
  */
 
 VOID
-outrb(struct expr *esp, int r)
+outrxb(int i, struct expr *esp, int r)
 {
-        register int n;
+        a_uint m, n;
+        int p_bytes;
 
         if (pass == 2) {
                 if (esp->e_flag==0 && esp->e_base.e_ap==NULL) {
@@ -378,30 +473,62 @@ outrb(struct expr *esp, int r)
                          * const byte to the T line and don't
                          * generate any relocation info.
                          */
-                        out_lb(lobyte(esp->e_addr),0);
+                        /*
+                         * Mask Value Selection
+                         */
+#ifdef  LONGINT
+                        switch(i) {
+                        default:
+                        case 1: m = (a_uint) ~0x0000007Fl;      n = (a_uint) ~0x000000FFl;      break;  /* 1 byte  */
+                        case 2: m = (a_uint) ~0x00007FFFl;      n = (a_uint) ~0x0000FFFFl;      break;  /* 2 bytes */
+                        case 3: m = (a_uint) ~0x007FFFFFl;      n = (a_uint) ~0x00FFFFFFl;      break;  /* 3 bytes */
+                        case 4: m = (a_uint) ~0x7FFFFFFFl;      n = (a_uint) ~0xFFFFFFFFl;      break;  /* 4 bytes */
+                        }
+#else
+                        switch(i) {
+                        default:
+                        case 1: m = (a_uint) ~0x0000007F;       n = (a_uint) ~0x000000FF;       break;  /* 1 byte  */
+                        case 2: m = (a_uint) ~0x00007FFF;       n = (a_uint) ~0x0000FFFF;       break;  /* 2 bytes */
+                        case 3: m = (a_uint) ~0x007FFFFF;       n = (a_uint) ~0x00FFFFFF;       break;  /* 3 bytes */
+                        case 4: m = (a_uint) ~0x7FFFFFFF;       n = (a_uint) ~0xFFFFFFFF;       break;  /* 4 bytes */
+                        }
+#endif
+                        /*
+                         * Signed Range Check
+                         */
+                        (void)m; //temporary fix warning
+
+                        /*
+                         * Page0 Range Check
+                         */
+                        if (((r & (R_SGND | R_USGN | R_PAGX | R_PCR)) == R_PAG0) &&
+                           ((n & esp->e_addr) != 0))
+                                err('d');
+
+                        out_lxb(i,esp->e_addr,0);
                         if (oflag) {
-                                outchk(1, 0);
-                                *txtp++ = lobyte(esp->e_addr);
+                                outchk(i,0);
+                                outatxb(i,esp->e_addr);
                         }
                 } else {
-                        if (!is_sdas() || !is_sdas_target_8051_like()) {
-                                r |= R3_BYTE | R3_BYTX | esp->e_rlcf;
-                                if (r & R3_MSB) {
+                        if ((i == 1) && (!is_sdas() || !is_sdas_target_8051_like())) {
+                                r |= R_BYTE | R_BYTX | esp->e_rlcf;
+                                if (r & R_MSB) {
                                         out_lb(hibyte(esp->e_addr),r|R_RELOC|R_HIGH);
                                 } else {
                                         out_lb(lobyte(esp->e_addr),r|R_RELOC);
                                 }
                                 if (oflag) {
-                                        outchk(2, 4);
-                                        out_tw(esp->e_addr);
+                                        outchk(a_bytes, 4);
+                                        out_txb(a_bytes, esp->e_addr);
                                         if (esp->e_flag) {
                                                 n = esp->e_base.e_sp->s_ref;
-                                                r |= R3_SYM;
+                                                r |= R_SYM;
                                         } else {
                                                 n = esp->e_base.e_ap->a_ref;
                                         }
                                         *relp++ = r;
-                                        *relp++ = txtp - txt - 2;
+                                        *relp++ = txtp - txt - a_bytes;
                                         out_rw(n);
                                 }
                         } else {
@@ -410,41 +537,44 @@ outrb(struct expr *esp, int r)
                                  * info.
                                  *
                                  * We generate a 24 bit address. The linker will
-                                 * select a single byte based on whether R3_MSB or
+                                 * select a single byte based on whether R_MSB or
                                  * R_HIB is set.
                                  */
                                 /* 24 bit mode. */
-                                r |= R3_BYTE | R_BYT3 | esp->e_rlcf;
+                                r |= R_BYTE | R_BYT3 | esp->e_rlcf;
                                 if (r & R_HIB)
                                 {
                                     /* Probably should mark this differently in the
                                      * listing file.
                                      */
-                                    out_lb(byte3(esp->e_addr),r|R_RELOC|R_HIGH);
+                                    out_lb(thrdbyte(esp->e_addr),r|R_RELOC|R_HIGH);
                                 }
-                                else if (r & R3_MSB) {
+                                else if (r & R_MSB) {
                                     out_lb(hibyte(esp->e_addr),r|R_RELOC|R_HIGH);
                                 } else {
                                     out_lb(lobyte(esp->e_addr),r|R_RELOC);
                                 }
                                 if (oflag) {
-                                    outchk(3, 5);
-                                    out_t24(esp->e_addr);
+                                    outchk(a_bytes, 5);
+                                    out_txb(a_bytes, esp->e_addr);
                                     if (esp->e_flag) {
                                             n = esp->e_base.e_sp->s_ref;
-                                            r |= R3_SYM;
+                                            r |= R_SYM;
                                     } else {
                                             n = esp->e_base.e_ap->a_ref;
                                     }
-                                    write_rmode(r);
-                                    *relp++ = txtp - txt - 3;
+                                    write_rmode(r, txtp - txt - a_bytes);
                                     out_rw(n);
                                 }
                                 /* end sdas mcs51 specific */
                         }
                 }
         }
-        ++dot.s_addr;
+        /*
+         * Update the Program Counter
+         */
+        p_bytes = 1;
+        dot.s_addr += (i/p_bytes) + (i % p_bytes ? 1 : 0);
 }
 
 /*)Function     VOID    outrw(esp, r)
@@ -460,19 +590,19 @@ outrb(struct expr *esp, int r)
  *
  *      local variables:
  *              int     n               symbol/area reference number
- *              int *   relp            pointer to rel array
- *              int *   txtp            pointer to txt array
  *
  *      global variables:
  *              sym     dot             defined as sym[0]
  *              int     oflag           -o, generate relocatable output flag
  *              int     pass            assembler pass number
+ *              char *  relp            Pointer to R Line Values
+ *              char *  txtp            Pointer to T Line Values
  *
  *      functions called:
  *              VOID    outchk()        asout.c
  *              VOID    out_lw()        asout.c
  *              VOID    out_rw()        asout.c
- *              VOID    out_tw()        asout.c
+ *              VOID    out_txb()       asout.c
  *
  *      side effects:
  *              The current assembly address is incremented by 2.
@@ -481,28 +611,28 @@ outrb(struct expr *esp, int r)
 VOID
 outrw(struct expr *esp, int r)
 {
-        register int n;
+        int n;
 
         if (pass == 2) {
+                /* sdas specific */
                 if (is_sdas() && is_sdas_target_8051_like() && esp->e_addr > 0xffff) {
-                    /* sdas specific */
                     warnBanner();
                     fprintf(stderr,
                             "large constant 0x%x truncated to 16 bits\n",
                             esp->e_addr);
-                    /* end sdas specific */
                 }
+                /* end sdas specific */
                 if (esp->e_flag==0 && esp->e_base.e_ap==NULL) {
-                        out_lw(esp->e_addr,0);
+                        out_lxb(2,esp->e_addr,0);
                         if (oflag) {
-                                outchk(2, 0);
-                                out_tw(esp->e_addr);
+                                outchk(2,0);
+                                out_txb(2,esp->e_addr);
                         }
                 } else {
-                        r |= R3_WORD | esp->e_rlcf;
-                        if (r & R3_BYTX) {
+                        r |= R_WORD | esp->e_rlcf;
+                        if (r & R_BYTX) {
                                 rerr();
-                                if (r & R3_MSB) {
+                                if (r & R_MSB) {
                                         out_lw(hibyte(esp->e_addr),r|R_RELOC);
                                 } else {
                                         out_lw(lobyte(esp->e_addr),r|R_RELOC);
@@ -513,10 +643,10 @@ outrw(struct expr *esp, int r)
                         if (oflag) {
                                 if (!is_sdas() || !is_sdas_target_8051_like()) {
                                         outchk(2, 4);
-                                        out_tw(esp->e_addr);
+                                        out_txb(2, esp->e_addr);
                                         if (esp->e_flag) {
                                                 n = esp->e_base.e_sp->s_ref;
-                                                r |= R3_SYM;
+                                                r |= R_SYM;
                                         } else {
                                                 n = esp->e_base.e_ap->a_ref;
                                         }
@@ -525,10 +655,10 @@ outrw(struct expr *esp, int r)
                                         out_rw(n);
                                 } else {
                                         outchk(2, 5);
-                                        out_tw(esp->e_addr);
+                                        out_txb(2, esp->e_addr);
                                         if (esp->e_flag) {
                                                 n = esp->e_base.e_sp->s_ref;
-                                                r |= R3_SYM;
+                                                r |= R_SYM;
                                         } else {
                                                 n = esp->e_base.e_ap->a_ref;
                                         }
@@ -544,8 +674,7 @@ outrw(struct expr *esp, int r)
                                                     "outrw()\n");
                                             rerr();
                                         }
-                                        write_rmode(r);
-                                        *relp++ = txtp - txt - 2;
+                                        write_rmode(r, txtp - txt - 2);
                                         out_rw(n);
                                 }
                         }
@@ -554,13 +683,12 @@ outrw(struct expr *esp, int r)
         dot.s_addr += 2;
 }
 
-/* sdas specific */
-/*)Function     VOID    outr24(esp, r)
+/*)Function     VOID    outr3b(esp, r)
  *
  *              expr *  esp             pointer to expr structure
  *              int     r               relocation mode
  *
- *      The function outr24() processes 24 bits of generated code
+ *      The function outr3b() processes 24 bits of generated code
  *      in either absolute or relocatable format dependent upon
  *      the data contained in the expr structure esp.  If the
  *      .REL output is enabled then the appropriate information
@@ -568,62 +696,69 @@ outrw(struct expr *esp, int r)
  *
  *      local variables:
  *              int     n               symbol/area reference number
- *              int *   relp            pointer to rel array
- *              int *   txtp            pointer to txt array
+ *              int     esprv           merged value
+ *              int     p_bytes         program counter update temporary
  *
  *      global variables:
+ *              int     a_bytes         T Line byte count
  *              sym     dot             defined as sym[0]
  *              int     oflag           -o, generate relocatable output flag
  *              int     pass            assembler pass number
+ *              char *  relp            Pointer to R Line Values
+ *              char *  txtp            Pointer to T Line Values
  *
  *      functions called:
  *              VOID    outchk()        asout.c
- *              VOID    out_l24()       asout.c
+ *              VOID    out_lxb()       asout.c
  *              VOID    out_rw()        asout.c
- *              VOID    out_t24()       asout.c
+ *              VOID    out_txb()       asout.c
  *
  *      side effects:
- *              The current assembly address is incremented by 3.
+ *              R and T Lines updated.  Listing updated.
+ *              The current assembly address is incremented by i.
  */
 
 VOID
-outr24(struct expr *esp, int r)
+outr3b(struct expr *esp, int r)
 {
-        register int n;
+        int i = 3;
+        a_uint esprv;
+        int n, p_bytes;
 
         if (pass == 2) {
+                esprv = esp->e_addr;
                 if (esp->e_flag==0 && esp->e_base.e_ap==NULL) {
                         /* This is a constant expression. */
-                        out_l24(esp->e_addr,0);
+                        out_lxb(i,esprv,0);
                         if (oflag) {
-                                outchk(3, 0);
-                                out_t24(esp->e_addr);
+                                outchk(i,0);
+                                out_txb(i,esprv);
                         }
                 } else {
                         /* This is a symbol. */
-                        r |= R3_WORD | esp->e_rlcf;
-                        if (r & R3_BYTX) {
+                        r |= R_WORD | esp->e_rlcf;
+                        if (r & R_BYTX) {
                                 /* I have no idea what this case is. */
                                 rerr();
-                                if (r & R3_MSB) {
-                                        out_lw(hibyte(esp->e_addr),r|R_RELOC);
+                                if (r & R_MSB) {
+                                        out_lw(hibyte(esprv),r|R_RELOC);
                                 } else {
-                                        out_lw(lobyte(esp->e_addr),r|R_RELOC);
+                                        out_lw(lobyte(esprv),r|R_RELOC);
                                 }
                         } else {
-                                out_l24(esp->e_addr,r|R_RELOC);
+                                out_lxb(i,esprv,r|R_RELOC);
                         }
                         if (oflag) {
-                                outchk(3, 5);
-                                out_t24(esp->e_addr);
+                                outchk(2*a_bytes, 5);
+                                out_txb(a_bytes, esp->e_addr);
                                 if (esp->e_flag) {
                                         n = esp->e_base.e_sp->s_ref;
-                                        r |= R3_SYM;
+                                        r |= R_SYM;
                                 } else {
                                         n = esp->e_base.e_ap->a_ref;
                                 }
 
-                                if (r & R3_BYTE)
+                                if (r & R_BYTE)
                                 {
                                     /* If this occurs, we cannot properly
                                      * code the relocation data with the
@@ -637,64 +772,73 @@ outr24(struct expr *esp, int r)
                                     rerr();
                                 }
 
-                                write_rmode(r | R_C24);
-                                *relp++ = txtp - txt - 3;
+                                write_rmode(r | R_C24, txtp - txt - a_bytes);
+
                                 out_rw(n);
                         }
                 }
         }
-        dot.s_addr += 3;
+        /*
+         * Update the Program Counter
+         */
+        p_bytes = 1;
+        dot.s_addr += (i/p_bytes) + (i % p_bytes ? 1 : 0);
 }
-/* end sdas specific */
 
-/*)Function     VOID    outdp(carea, esp)
+
+/*)Function     VOID    outdp(carea, esp, r)
  *
- *              area *  carea           pointer to current area strcuture
+ *              area *  carea           pointer to current area structure
  *              expr *  esp             pointer to expr structure
+ *              int     r               optional PAGX relocation coding
  *
  *      The function outdp() flushes the output buffer and
  *      outputs paging information to the .REL file.
  *
  *      local variables:
  *              int     n               symbol/area reference number
- *              int     r               relocation mode
- *              int *   relp            pointer to rel array
- *              int *   txtp            pointer to txt array
  *
  *      global variables:
+ *              int     a_bytes         T Line byte count
  *              int     oflag           -o, generate relocatable output flag
  *              int     pass            assembler pass number
+ *              char *  relp            Pointer to R Line Values
+ *              char *  txtp            Pointer to T Line Values
  *
  *      functions called:
  *              VOID    outbuf()        asout.c
  *              VOID    outchk()        asout.c
  *              VOID    out_rw()        asout.c
- *              VOID    out_tw()        asout.c
+ *              VOID    out_txb()       asout.c
  *
  *      side effects:
- *              Output buffer flushed to .REL fiel.
+ *              Output buffer flushed to .REL file.
  *              Paging information dumped to .REL file.
  */
 
 VOID
-outdp(register struct area *carea, register struct expr *esp)
+outdp(struct area *carea, struct expr *esp, int r)
 {
-        register int n, r;
+        a_uint n;
 
         if (oflag && pass==2) {
-                outchk(ASXXXX_HUGE,ASXXXX_HUGE);
-                out_tw(carea->a_ref);
-                out_tw(esp->e_addr);
+                outchk(ASXHUGE, ASXHUGE);
+                out_txb(a_bytes, carea->a_ref);
+                out_txb(a_bytes, esp->e_addr);
                 if (esp->e_flag || esp->e_base.e_ap!=NULL) {
-                        r = R3_WORD;
+                        if (esp->e_base.e_ap == NULL) {
+                                n = area[1].a_ref;
+                                r |= R_AREA;
+                                fprintf(stderr, "?ASxxxx-OUTDP-NULL-POINTER error.\n\n");
+                        } else
                         if (esp->e_flag) {
                                 n = esp->e_base.e_sp->s_ref;
-                                r |= R3_SYM;
+                                r |= R_SYM;
                         } else {
                                 n = esp->e_base.e_ap->a_ref;
+                                r |= R_AREA;
                         }
-                        write_rmode(r);
-                        *relp++ = txtp - txt - 2;
+                        write_rmode(r, txtp - txt - a_bytes);
                         out_rw(n);
                 }
                 outbuf("P");
@@ -740,6 +884,10 @@ outall(void)
  *      global variables:
  *              int     oflag           -o, generate relocatable output flag
  *              int     pass            assembler pass number
+ *              char    rel[]           relocation data for code/data array
+ *              char *  relp            Pointer to R Line Values
+ *              char    txt[]           assembled code/data array
+ *              char *  txtp            Pointer to T Line Values
  *
  *      functions called:
  *              int     fprintf()       c_library
@@ -776,16 +924,19 @@ outdot(void)
  *
  *      local variables:
  *              area *  ap              pointer to an area structure
- *              int *   relp            pointer to rel array
- *              int *   txtp            pointer to txt array
  *
  *      global variables:
+ *              int     a_bytes         T Line byte count
  *              sym     dot             defined as sym[0]
+ *              char    rel[]           relocation data for code/data array
+ *              char *  relp            Pointer to R Line Values
+ *              char    txt[]           assembled code/data array
+ *              char *  txtp            Pointer to T Line Values
  *
  *      functions called:
  *              VOID    outbuf()        asout.c
  *              VOID    out_rw()        asout.c
- *              VOID    out_tw()        asout.c
+ *              VOID    out_txb()       asout.c
  *
  *      side effects:
  *              Data and relocation buffers may be emptied and initialized.
@@ -794,16 +945,15 @@ outdot(void)
 VOID
 outchk(int nt, int nr)
 {
-        register struct area *ap;
+        struct area *ap;
 
         if (txtp+nt > &txt[NTXT] || relp+nr > &rel[NREL]) {
                 outbuf("R");
         }
         if (txtp == txt) {
-                out_tw(dot.s_addr);
+                out_txb(a_bytes, dot.s_addr);
                 if ((ap = dot.s_area) != NULL) {
-                        write_rmode(R3_WORD|R3_AREA);
-                        *relp++ = 0;
+                        write_rmode(R_WORD|R_AREA, 0);
                         out_rw(ap->a_ref);
                 }
         }
@@ -818,13 +968,15 @@ outchk(int nt, int nr)
  *      buffer pointers and counters are initialized.
  *
  *      local variables:
- *              int     rel[]           relocation data for code/data array
- *              int *   relp            pointer to rel array
- *              int     txt[]           assembled code/data array
- *              int *   txtp            pointer to txt array
+ *              none
  *
  *      global variables:
+ *              int     a_bytes         T Line byte count
  *              FILE *  ofp             relocation output file handle
+ *              char    rel[]           relocation data for code/data array
+ *              char *  relp            Pointer to R Line Values
+ *              char    txt[]           assembled code/data array
+ *              char *  txtp            Pointer to T Line Values
  *
  *      functions called:
  *              int     fprintf()       c_library
@@ -838,7 +990,7 @@ outchk(int nt, int nr)
 VOID
 outbuf(char *s)
 {
-        if (txtp > &txt[2]) {
+        if (txtp > &txt[a_bytes]) {
                 fprintf(ofp, "T");
                 out(txt,(int) (txtp-txt));
                 fprintf(ofp, "\n");
@@ -848,6 +1000,26 @@ outbuf(char *s)
         }
         txtp = txt;
         relp = rel;
+}
+
+VOID
+outradix()
+{
+        if (pass < 2)
+                return;
+
+        /*
+         * Output Radix
+         */
+        if (xflag == 0) {
+                fprintf(ofp, "X%c%d\n", (int) hilo ? 'H' : 'L', a_bytes);
+        } else
+        if (xflag == 1) {
+                fprintf(ofp, "Q%c%d\n", (int) hilo ? 'H' : 'L', a_bytes);
+        } else
+        if (xflag == 2) {
+                fprintf(ofp, "D%c%d\n", (int) hilo ? 'H' : 'L', a_bytes);
+        }
 }
 
 /*)Function     VOID    outgsd()
@@ -870,14 +1042,16 @@ outbuf(char *s)
  *              int     j               loop counter
  *              int     c               string character value
  *              int     narea           number of code areas
- *              char *  ptr             string pointer
  *              int     nglob           number of global symbols
+ *              char *  ptr             string pointer
  *              int     rn              symbol reference number
  *
  *      global variables:
+ *              int     a_bytes         T Line byte count
  *              area *  areap           pointer to an area structure
+ *              int     hilo            byte order
  *              char    module[]        module name string
- *              sym * symhash[]         array of pointers to NHASH
+ *              sym *   symhash[]       array of pointers to NHASH
  *                                      linked symbol lists
  *              int     xflag           -x, listing radix flag
  *
@@ -894,9 +1068,9 @@ outbuf(char *s)
 VOID
 outgsd(void)
 {
-        register struct area *ap;
-        register struct sym  *sp;
-        register int i, j;
+        struct area *ap;
+        struct sym  *sp;
+        int i, j;
         char *ptr;
         int narea, nglob, rn;
 
@@ -913,24 +1087,23 @@ outgsd(void)
                 sp = symhash[i];
                 while (sp) {
                         if (sp->s_flag&S_GBL)
-                                ++nglob;
+                                nglob += 1;
                         sp = sp->s_sp;
                 }
         }
 
+        outradix();
+
         /*
-         * Output Radix and number of areas and symbols
+         * Output number of areas and symbols
          */
         if (xflag == 0) {
-                fprintf(ofp, "X%c\n", hilo ? 'H' : 'L');
                 fprintf(ofp, "H %X areas %X global symbols\n", narea, nglob);
         } else
         if (xflag == 1) {
-                fprintf(ofp, "Q%c\n", hilo ? 'H' : 'L');
                 fprintf(ofp, "H %o areas %o global symbols\n", narea, nglob);
         } else
         if (xflag == 2) {
-                fprintf(ofp, "D%c\n", hilo ? 'H' : 'L');
                 fprintf(ofp, "H %u areas %u global symbols\n", narea, nglob);
         }
 
@@ -991,12 +1164,11 @@ outgsd(void)
  *              area *  ap              pointer to an area structure
  *
  *      The function outarea()  outputs the A line to the .REL
- *      file.  The A line contains the area's name, size, and
- *      attributes.
+ *      file.  The A line contains the area's name, size,
+ *      and attributes.
  *
  *      local variables:
- *              char *  ptr             pointer to area id string
- *              int     c               character value
+ *              char *  frmt            pointer to format string
  *
  *      global variables:
  *              FILE *  ofp             relocation output file handle
@@ -1010,29 +1182,35 @@ outgsd(void)
  */
 
 VOID
-outarea(register struct area *ap)
+outarea(struct area *ap)
 {
-        register char *ptr;
+        char * frmt;
 
         fprintf(ofp, "A ");
-        ptr = &ap->a_id[0];
-        fprintf(ofp, "%s", ptr);
-        if (xflag == 0) {
-                if (is_sdas()) {
-                        /* sdas specific */
-                        fprintf(ofp, " size %X flags %X addr %X\n", ap->a_size, ap->a_flag, ap->a_addr);
-                        /* end sdas specific */
+        fprintf(ofp, "%s", &ap->a_id[0]);
 
-                } else {
-                        fprintf(ofp, " size %X flags %X\n", ap->a_size, ap->a_flag);
-                }
-        } else
-        if (xflag == 1) {
-                fprintf(ofp, " size %o flags %o\n", ap->a_size, ap->a_flag);
-        } else
-        if (xflag == 2) {
-                fprintf(ofp, " size %u flags %u\n", ap->a_size, ap->a_flag);
+        switch(xflag) {
+        default:
+        case 0: frmt = " size %X flags %X";     break;
+        case 1: frmt = " size %o flags %o";     break;
+        case 2: frmt = " size %u flags %u";     break;
         }
+
+        fprintf(ofp, frmt, ap->a_size, ap->a_flag);
+        if (is_sdas()) {
+                /* sdas specific */
+                if (xflag == 0) {
+                        fprintf(ofp, " addr %X", ap->a_addr);
+                } else
+                if (xflag == 1) {
+                        fprintf(ofp, " addr %o", ap->a_addr);
+                } else
+                if (xflag == 2) {
+                        fprintf(ofp, " addr %u", ap->a_addr);
+                }
+                /* end sdas specific */
+        }
+        fprintf(ofp, "\n");
 }
 
 /*)Function     VOID    outsym(sp)
@@ -1044,10 +1222,11 @@ outarea(register struct area *ap)
  *      the symbol is defined or referenced.
  *
  *      local variables:
- *              char *  ptr             pointer to symbol id string
- *              int     c               character value
+ *              char *  frmt            pointer to format string
+ *              int     s_addr          (int) truncated to 2-bytes
  *
  *      global variables:
+ *              int     a_bytes         argument size in bytes
  *              FILE *  ofp             relocation output file handle
  *              int     xflag           -x, listing radix flag
  *
@@ -1059,23 +1238,80 @@ outarea(register struct area *ap)
  */
 
 VOID
-outsym(register struct sym *sp)
+outsym(struct sym *sp)
 {
-        register char *ptr;
+        char *frmt;
+        a_uint s_addr;
+
+        s_addr = sp->s_addr;
 
         fprintf(ofp, "S ");
-        ptr = &sp->s_id[0];     /* JLH */
-        fprintf(ofp, "%s", ptr );
+        fprintf(ofp, "%s", &sp->s_id[0]);
         fprintf(ofp, " %s", sp->s_type==S_NEW ? "Ref" : "Def");
-        if (xflag == 0) {
-                fprintf(ofp, "%04X\n", sp->s_addr);
-        } else
-        if (xflag == 1) {
-                fprintf(ofp, "%06o\n", sp->s_addr);
-        } else
-        if (xflag == 2) {
-                fprintf(ofp, "%05u\n", sp->s_addr);
+
+#ifdef  LONGINT
+        switch(xflag) {
+        default:
+        case 0:
+                switch(a_bytes) {
+                default:
+                case 2: frmt = "%04lX\n"; break;
+                case 3: frmt = "%06lX\n"; break;
+                case 4: frmt = "%08lX\n"; break;
+                }
+                break;
+
+        case 1:
+                switch(a_bytes) {
+                default:
+                case 2: frmt = "%06lo\n"; break;
+                case 3: frmt = "%08lo\n"; break;
+                case 4: frmt = "%011lo\n"; break;
+                }
+                break;
+
+        case 2:
+                switch(a_bytes) {
+                default:
+                case 2: frmt = "%05lu\n"; break;
+                case 3: frmt = "%08lu\n"; break;
+                case 4: frmt = "%010lu\n"; break;
+                }
+                break;
         }
+#else
+        switch(xflag) {
+        default:
+        case 0:
+                switch(a_bytes) {
+                default:
+                case 2: frmt = "%04X\n"; break;
+                case 3: frmt = "%06X\n"; break;
+                case 4: frmt = "%08X\n"; break;
+                }
+                break;
+
+        case 1:
+                switch(a_bytes) {
+                default:
+                case 2: frmt = "%06o\n"; break;
+                case 3: frmt = "%08o\n"; break;
+                case 4: frmt = "%011o\n"; break;
+                }
+                break;
+
+        case 2:
+                switch(a_bytes) {
+                default:
+                case 2: frmt = "%05u\n"; break;
+                case 3: frmt = "%08u\n"; break;
+                case 4: frmt = "%010u\n"; break;
+                }
+                break;
+        }
+#endif
+
+        fprintf(ofp, frmt, s_addr);
 }
 
 /*)Function     VOID    out(p, n)
@@ -1084,7 +1320,7 @@ outsym(register struct sym *sp)
  *              int *   p               pointer to data words
  *
  *      The function out() outputs the data words to the .REL file
- *      int the specified radix.
+ *      in the specified radix.
  *
  *      local variables:
  *              none
@@ -1105,20 +1341,20 @@ out(char *p, int n)
 {
         while (n--) {
                 if (xflag == 0) {
-                        fprintf(ofp, " %02X", (*p++)&0xff);
+                        fprintf(ofp, " %02X", (*p++)&0377);
                 } else
                 if (xflag == 1) {
-                        fprintf(ofp, " %03o", (*p++)&0xff);
+                        fprintf(ofp, " %03o", (*p++)&0377);
                 } else
                 if (xflag == 2) {
-                        fprintf(ofp, " %03u", (*p++)&0xff);
+                        fprintf(ofp, " %03u", (*p++)&0377);
                 }
         }
 }
 
-/*)Function     VOID    out_lb(b, t)
+/*)Function     VOID    out_lb(v, t)
  *
- *              int     b               assembled data
+ *              a_uint  v               assembled data
  *              int     t               relocation type
  *
  *      The function out_lb() copies the assembled data and
@@ -1140,100 +1376,102 @@ out(char *p, int n)
  */
 
 VOID
-out_lb(register int b, register int t)
+out_lb(a_uint v, int t)
 {
         if (cp < &cb[NCODE]) {
-                *cp++ = b;
+                *cp++ = (char) v;
                 *cpt++ = t;
         }
 }
 
-/*)Function     VOID    out_lw(n, t)
+/*)Function     VOID    out_lw(v, t)
+ *)Function     VOID    out_l3b(v, t)
+ *)Function     VOID    out_l4b(v, t)
  *
- *              int     n               assembled data
+ *              a_uint  v               assembled data
  *              int     t               relocation type
  *
- *      The function out_lw() copies the assembled data and
- *      its relocation type to the list data buffers.
+ *      Dispatch functions for processing listing data.
  *
  *      local variables:
  *              none
  *
  *      global variables:
- *              int *   cp              pointer to assembler output array cb[]
- *              int *   cpt             pointer to assembler relocation type
- *                                      output array cbt[]
+ *              none
  *
  *      functions called:
  *              none
  *
  *      side effects:
- *              Pointers to data and relocation buffers incremented by 2.
+ *              Listing data processed.
  */
 
 VOID
-out_lw(register int n, register int t)
+out_lw(a_uint v, int t)
 {
-        if (hilo) {
-                out_lb(hibyte(n),t ? t|R_HIGH : 0);
-                out_lb(lobyte(n),t);
-        } else {
-                out_lb(lobyte(n),t);
-                out_lb(hibyte(n),t ? t|R_HIGH : 0);
-        }
+        out_lxb(2, v, t);
 }
 
-/* sdas specific */
-/*)Function     VOID    out_l24(n, t)
+VOID
+out_l3b(a_uint v, int t)
+{
+        out_lxb(3, v, t);
+}
+
+VOID
+out_l4b(a_uint v, int t)
+{
+        out_lxb(4, v, t);
+}
+
+/*)Function     VOID    out_lxb(i, v, t)
  *
- *              int     n               assembled data
+ *              int     i               output byte count
+ *              a_uint  v               assembled data
  *              int     t               relocation type
  *
- *      The function out_l24() copies the assembled data and
- *      its relocation type to the list data buffers.
+ *      Dispatch function for list processing.
  *
  *      local variables:
  *              none
  *
  *      global variables:
- *              int *   cp              pointer to assembler output array cb[]
- *              int *   cpt             pointer to assembler relocation type
- *                                      output array cbt[]
+ *              int     hilo            byte order
  *
  *      functions called:
- *              none
+ *              VOID    out_lb()        asout.c
  *
  *      side effects:
- *              Pointers to data and relocation buffers incremented by 3.
+ *              i list bytes are processed.
  */
 
 VOID
-out_l24(int n, int t)
+out_lxb(int i, a_uint v, int t)
 {
-        if (hilo) {
-                out_lb(byte3(n),t ? t|R_HIGH : 0);
-                out_lb(hibyte(n),t);
-                out_lb(lobyte(n),t);
+        if ((int) hilo) {
+                if (i >= 3) out_lb(thrdbyte(v),t ? t|R_HIGH : 0);
+                if (i >= 2) out_lb(hibyte(v),t);
+                if (i >= 1) out_lb(lobyte(v),t);
         } else {
-                out_lb(lobyte(n),t);
-                out_lb(hibyte(n),t);
-                out_lb(byte3(n),t ? t|R_HIGH : 0);
+                if (i >= 1) out_lb(lobyte(v),t);
+                if (i >= 2) out_lb(hibyte(v),t);
+                if (i >= 3) out_lb(thrdbyte(v),t ? t|R_HIGH : 0);
         }
 }
-/* end sdas specific */
 
-/*)Function     VOID    out_rw(n)
+/*)Function     VOID    out_rw(v)
  *
- *              int     n               data word
+ *              a_uint  v               assembled data
  *
  *      The function out_rw() outputs the relocation (R)
  *      data word as two bytes ordered according to hilo.
  *
  *      local variables:
- *              int *   relp            pointer to rel array
+ *              none
  *
  *      global variables:
- *              none
+ *              int     hilo            byte order
+ *              char *  relp            Pointer to R Line Values
  *
  *      functions called:
  *              int     lobyte()        asout.c
@@ -1244,93 +1482,66 @@ out_l24(int n, int t)
  */
 
 VOID
-out_rw(register int n)
+out_rw(a_uint v)
 {
-        if (hilo) {
-                *relp++ = hibyte(n);
-                *relp++ = lobyte(n);
+        if ((int) hilo) {
+                *relp++ = hibyte(v);
+                *relp++ = lobyte(v);
         } else {
-                *relp++ = lobyte(n);
-                *relp++ = hibyte(n);
+                *relp++ = lobyte(v);
+                *relp++ = hibyte(v);
         }
 }
 
-/*)Function     VOID    out_tw(n)
+/*)Function     VOID    out_txb(i, v)
  *
- *              int     n               data word
+ *              int     i               T Line byte count
+ *              a_uint  v               data word
  *
- *      The function out_tw() outputs the text (T)
- *      data word as two bytes ordered according to hilo.
+ *      The function out_txb() outputs the text (T)
+ *      data word as i bytes ordered according to hilo.
  *
  *      local variables:
- *              int *   txtp            pointer to txt array
  *
  *      global variables:
- *              none
+ *              int     hilo            byte order
+ *              char *  txtp            Pointer to T Line Values
  *
  *      functions called:
  *              int     lobyte()        asout.c
  *              int     hibyte()        asout.c
+ *              int     thrdbyte()      asout.c
+ *              int     frthbyte()      asout.c
  *
  *      side effects:
- *              Pointer to relocation buffer incremented by 2.
+ *              T Line buffer updated.
  */
 
 VOID
-out_tw(register int n)
+out_txb(int i, a_uint v)
 {
-        if (hilo) {
-                *txtp++ = hibyte(n);
-                *txtp++ = lobyte(n);
+        if ((int) hilo) {
+                if (i >= 4) *txtp++ = frthbyte(v);
+                if (i >= 3) *txtp++ = thrdbyte(v);
+                if (i >= 2) *txtp++ = hibyte(v);
+                if (i >= 1) *txtp++ = lobyte(v);
         } else {
-                *txtp++ = lobyte(n);
-                *txtp++ = hibyte(n);
+                if (i >= 1) *txtp++ = lobyte(v);
+                if (i >= 2) *txtp++ = hibyte(v);
+                if (i >= 3) *txtp++ = thrdbyte(v);
+                if (i >= 4) *txtp++ = frthbyte(v);
         }
 }
 
-/* sdas specific */
-/*)Function     VOID    out_t24(n)
+/*)Function     int     lobyte(v)
+ *)Function     int     hibyte(v)
+ *)Function     int     thrdbyte(v)
+ *)Function     int     frthbyte(v)
  *
- *              int     n               data word
+ *              a_uint  v               assembled data
  *
- *      The function out_t24() outputs the text (T)
- *      data word as three bytes ordered according to hilo.
- *
- *      local variables:
- *              int *   txtp            pointer to txt array
- *
- *      global variables:
- *              none
- *
- *      functions called:
- *              int     lobyte()        asout.c
- *              int     hibyte()        asout.c
- *
- *      side effects:
- *              Pointer to relocation buffer incremented by 3.
- */
-
-VOID
-out_t24(int n)
-{
-        if (hilo) {
-                *txtp++ = byte3(n);
-                *txtp++ = hibyte(n);
-                *txtp++ = lobyte(n);
-        } else {
-                *txtp++ = lobyte(n);
-                *txtp++ = hibyte(n);
-                *txtp++ = byte3(n);
-        }
-}
-/* end sdas specific */
-
-/*)Function     int     lobyte(n)
- *
- *              int     n               data word
- *
- *      The function lobyte() returns the lower byte of
- *      integer n.
+ *      These functions return the 1st, 2nd, 3rd, or 4th byte
+ *      of integer v.
  *
  *      local variables:
  *              none
@@ -1346,35 +1557,27 @@ out_t24(int n)
  */
 
 int
-lobyte(int n)
+lobyte(a_uint v)
 {
-        return (n&0377);
+        return ((int) v&0377);
 }
 
-/*)Function     int     hibyte(n)
- *
- *              int     n               data word
- *
- *      The function hibyte() returns the higher byte of
- *      integer n.
- *
- *      local variables:
- *              none
- *
- *      global variables:
- *              none
- *
- *      functions called:
- *              none
- *
- *      side effects:
- *              none
- */
+int
+hibyte(a_uint v)
+{
+        return ((int) (v>>8)&0377);
+}
 
 int
-hibyte(int n)
+thrdbyte(a_uint v)
 {
-        return ((n>>8)&0377);
+        return ((int) (v>>16)&0377);
+}
+
+int
+frthbyte(a_uint v)
+{
+        return ((int) (v>>24)&0377);
 }
 
 /*
@@ -1383,13 +1586,13 @@ hibyte(int n)
  * This function is derived from outrw(), adding the parameter for the
  * 11 bit address.  This form of address is used only on the 8051 and 8048.
  */
-/*)Function     VOID    outr11(esp, op, r)
+/*)Function     VOID    outrwm(esp, r, v)
  *
  *              expr *  esp             pointer to expr structure
- *              int     op              opcode
  *              int     r               relocation mode
+ *              int     v               opcode
  *
- *      The function outr11() processes a word of generated code
+ *      The function outrwm() processes a word of generated code
  *      in either absolute or relocatable format dependent upon
  *      the data contained in the expr structure esp.  If the
  *      .REL output is enabled then the appropriate information
@@ -1404,27 +1607,27 @@ hibyte(int n)
  *
  *      local variables:
  *              int     n               symbol/area reference number
- *              int *   relp            pointer to rel array
- *              int *   txtp            pointer to txt array
  *
  *      global variables:
  *              sym     dot             defined as sym[0]
  *              int     oflag           -o, generate relocatable output flag
  *              int     pass            assembler pass number
+ *              char *  relp            Pointer to R Line Values
+ *              char *  txtp            Pointer to T Line Values
  *              
  *      functions called:
  *              VOID    outchk()        asout.c
  *              VOID    out_lw()        asout.c
  *              VOID    out_rw()        asout.c
- *              VOID    out_tw()        asout.c
+ *              VOID    out_txb()       asout.c
  *
  *      side effects:
  *              The current assembly address is incremented by 2.
  */
 VOID
-outr11(register struct expr *esp, int op, int r)
+outrwm(struct expr *esp, int r, a_uint v)
 {
-        register int n;
+        int n;
 
         if (pass == 2) {
                 if (!is_sdas() || !is_sdas_target_8051_like()) {
@@ -1445,18 +1648,18 @@ outr11(register struct expr *esp, int op, int r)
                          * byte output: relocatable word, followed
                          * by op-code.  Linker will combine them.
                          */
-                        r |= R3_WORD | esp->e_rlcf;
-                        n = ((esp->e_addr & 0x0700) >> 3) | op;
+                        r |= R_WORD | esp->e_rlcf;
+                        n = ((esp->e_addr & 0x0700) >> 3) | v;
                         n = (n << 8) | (esp->e_addr & 0xFF);
                         out_lw(n,r|R_RELOC);
                         if (oflag) {
                                 outchk(3, 4);
-                                out_tw(esp->e_addr);
-                                *txtp++ = op;
+                                out_txb(2, esp->e_addr);
+                                *txtp++ = v;
 
                                 if (esp->e_flag) {
                                         n = esp->e_base.e_sp->s_ref;
-                                        r |= R3_SYM;
+                                        r |= R_SYM;
                                 } else {
                                         n = esp->e_base.e_ap->a_ref;
                                 }
@@ -1472,11 +1675,10 @@ outr11(register struct expr *esp, int op, int r)
                                 out_lw(esp->e_addr,0);
                                 if (oflag) {
                                         outchk(3, 0);
-                                        out_tw(esp->e_addr);
-                                        *txtp++ = op;
+                                        out_txb(2, esp->e_addr);
+                                        *txtp++ = v;
 
-                                        write_rmode(r);
-                                        *relp++ = txtp - txt - 3;
+                                        write_rmode(r, txtp - txt - 3);
                                         out_rw(0xFFFF);
                                 }
                         } else {
@@ -1485,21 +1687,20 @@ outr11(register struct expr *esp, int op, int r)
                                  * by op-code.  Linker will combine them.
                                  * Listing shows only the address.
                                  */
-                                r |= R3_WORD | esp->e_rlcf;
+                                r |= R_WORD | esp->e_rlcf;
                                 out_lw(esp->e_addr,r|R_RELOC);
                                 if (oflag) {
                                         outchk(3, 5);
-                                        out_tw(esp->e_addr);
-                                        *txtp++ = op;
+                                        out_txb(2, esp->e_addr);
+                                        *txtp++ = v;
 
                                         if (esp->e_flag) {
                                                 n = esp->e_base.e_sp->s_ref;
-                                                r |= R3_SYM;
+                                                r |= R_SYM;
                                         } else {
                                                 n = esp->e_base.e_ap->a_ref;
                                         }
-                                        write_rmode(r);
-                                        *relp++ = txtp - txt - 3;
+                                        write_rmode(r, txtp - txt - 3);
                                         out_rw(n);
                                 }
                         }
@@ -1508,45 +1709,16 @@ outr11(register struct expr *esp, int op, int r)
         dot.s_addr += 2;
 }
 
-/* sdas specific */
-/*)Function     int     byte3(n)
- *
- *              int     n               24 bit data
- *
- *      The function byte3() returns the MSB of the
- *      24 bit integer n.
- *
- *      local variables:
- *              none
- *
- *      global variables:
- *              none
- *
- *      functions called:
- *              none
- *
- *      side effects:
- *              none
- */
-int
-byte3(int n)
-{
-        return ((n >> 16) & 0xff);
-}
-/* end sdas specific */
-
-/* sdas specific */
 /*
  * Output relocatable 19 bit jump/call
  *
  * This function is derived from outrw(), adding the parameter for the
- * 19 bit address.  This form of address is used only in the DS80C390
- * Flat24 mode.
+ * 19 bit address.  This form of address is used only in the DS80C390.
  */
 VOID
-outr19(struct expr * esp, int op, int r)
+outr3bm(struct expr * esp, int r, a_uint v)
 {
-        register int n;
+        int n;
 
         if (pass == 2) {
                 if (esp->e_flag==0 && esp->e_base.e_ap==NULL) {
@@ -1556,11 +1728,10 @@ outr19(struct expr * esp, int op, int r)
                         out_lw(esp->e_addr,0);
                         if (oflag) {
                                 outchk(4, 0);
-                                out_t24(esp->e_addr);
-                                *txtp++ = op;
+                                out_txb(3, esp->e_addr);
+                                *txtp++ = v;
 
-                                write_rmode(r);
-                                *relp++ = txtp - txt - 4;
+                                write_rmode(r, txtp - txt - 4);
                                 out_rw(0xFFFF);
                         }
                 } else {
@@ -1569,25 +1740,23 @@ outr19(struct expr * esp, int op, int r)
                          * by op-code.  Linker will combine them.
                          * Listing shows only the address.
                          */
-                        r |= R3_WORD | esp->e_rlcf;
-                        out_l24(esp->e_addr,r|R_RELOC);
+                        r |= R_WORD | esp->e_rlcf;
+                        out_l3b(esp->e_addr,r|R_RELOC);
                         if (oflag) {
                                 outchk(4, 5);
-                                out_t24(esp->e_addr);
-                                *txtp++ = op;
+                                out_txb(3, esp->e_addr);
+                                *txtp++ = v;
 
                                 if (esp->e_flag) {
                                         n = esp->e_base.e_sp->s_ref;
-                                        r |= R3_SYM;
+                                        r |= R_SYM;
                                 } else {
                                         n = esp->e_base.e_ap->a_ref;
                                 }
-                                write_rmode(r);
-                                *relp++ = txtp - txt - 4;
+                                write_rmode(r, txtp - txt - 4);
                                 out_rw(n);
                         }
                 }
         }
         dot.s_addr += 3;
 }
-/* end sdas specific */

@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -87,7 +87,7 @@
  *      TRISC<6> = TRISC<7> = 1 (TX, RX)
  *      SPBRGH:SPBRG
  *
- * 18f2450/18f2480/18f2585/18f2682:
+ * 18f2450/18f2480/18f2585/18f2682/18f6585/18f6680/18f8585/18f8680:
  *      RC6/TX and RC7/RX
  *
  *      TRISC<6> = 0    (TX)
@@ -122,11 +122,8 @@
 #warning The target device is not supported by the SDCC PIC16 USART library.
 #endif
 
-#if    (__SDCC_PIC16_FAMILY == 1822200) \
-    || (__SDCC_PIC16_FAMILY == 1802420) \
-    || (__SDCC_PIC16_FAMILY == 1802480) \
-    || (__SDCC_PIC16_FAMILY == 1865200) \
-    || (__SDCC_PIC16_FAMILY == 1865850)
+#if (__SDCC_USART_STYLE == 1822200) || \
+    (__SDCC_USART_STYLE == 1865200)
 #define __SDCC_NO_SPBRGH        1
 #endif  /* device lacks SPBRGH */
 

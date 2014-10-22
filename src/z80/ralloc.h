@@ -52,6 +52,8 @@ enum
   CND_IDX
 };
 
+#define A_IDX (IS_GB ? 4 : (IY_RESERVED ? 6 : 8))
+
 enum
 {
   REG_PTR = 1,

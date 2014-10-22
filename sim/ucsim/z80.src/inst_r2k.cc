@@ -170,7 +170,10 @@ t_mem cl_r2k::fetch(void) {
 
 /******** start rabbit 2000 specific codes *****************/
 int cl_r2k::inst_add_sp_d(t_mem code) {
-  regs.SP = add_u16_disp(regs.SP, fetch());
+  TYPE_UWORD  d = fetch( );
+  /* sign-extend d from 8-bits to 16-bits */
+  d |= (d>>7)*0xFF00;
+  regs.SP = (regs.SP + d) & 0xffff;
   return(resGO);
 }
 
@@ -292,8 +295,11 @@ int cl_r2k::inst_mul(t_mem code) {
 }
 
 int cl_r2k::inst_rl_de(t_mem code) {
-  regs.F = (regs.F & ~BIT_C) | (((regs.DE >> 15) & 1U) << BITPOS_C);
-  regs.DE = (regs.DE << 1) | ((regs.F & BIT_C) >> BITPOS_C);
+  unsigned int oldcarry = (regs.F & BIT_C);
+  
+  regs.F &= ~BIT_ALL;
+  regs.F |= (((regs.DE >> 15) & 1U) << BITPOS_C);
+  regs.DE = (regs.DE << 1) | (oldcarry >> BITPOS_C);
   
   if (regs.DE & 0x8000)
     regs.F |= BIT_S;
@@ -305,8 +311,11 @@ int cl_r2k::inst_rl_de(t_mem code) {
 }
 
 int cl_r2k::inst_rr_de(t_mem code) {
-  regs.F = (regs.F & ~BIT_C) | ((regs.DE & 1) << BITPOS_C);
-  regs.DE = (regs.DE >> 1) | ((regs.F & BIT_C) << (15 - BITPOS_C));
+  unsigned int oldcarry = (regs.F & BIT_C);
+
+  regs.F &= ~BIT_ALL;
+  regs.F |= ((regs.DE & 1) << BITPOS_C);
+  regs.DE = (regs.DE >> 1) | (oldcarry << (15 - BITPOS_C));
   
   if (regs.DE & 0x8000)
     regs.F |= BIT_S;
@@ -319,8 +328,11 @@ int cl_r2k::inst_rr_de(t_mem code) {
 
 int cl_r2k::inst_rr_hl(t_mem code)    // RR HL
 {
-  regs.F = (regs.F & ~BIT_C) | ((regs.HL & 1) << BITPOS_C);
-  regs.HL = (regs.HL >> 1) | ((regs.F & BIT_C) << (15 - BITPOS_C));
+  unsigned int oldcarry = (regs.F & BIT_C);
+  
+  regs.F &= ~BIT_ALL;
+  regs.F |= ((regs.HL & 1) << BITPOS_C);
+  regs.HL = (regs.HL >> 1) | (oldcarry << (15 - BITPOS_C));
   
   if (regs.HL & 0x8000)
     regs.F |= BIT_S;

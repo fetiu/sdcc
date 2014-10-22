@@ -128,7 +128,7 @@ enum {
   E_CODE_NO_INIT                =  99, /* vars in code space must have initializer */
   E_OPS_INTEGRAL                = 100, /* operans must be integral for certain assignments */
   E_TOO_MANY_PARMS              = 101, /* too many parameters */
-  E_TOO_FEW_PARMS               = 102, /* to few parameters   */
+  E_TOO_FEW_PARMS               = 102, /* too few parameters  */
   E_FUNC_NO_CODE                = 103, /* fatalError          */
   E_TYPE_MISMATCH_PARM          = 104, /* type mismatch for parameter */
   E_INVALID_FLOAT_CONST         = 105, /* invalid floating point literal string */
@@ -155,7 +155,7 @@ enum {
   W_CODE_UNREACH                = 126, /* unreachable code    */
   W_NONPTR2_GENPTR              = 127, /* non pointer cast to generic pointer */
   W_POSSBUG                     = 128, /* possible code generation error */
-  E_INCOMPAT_PTYPES             = 129, /* incampatible pointer assignment */
+  E_INCOMPAT_PTYPES             = 129, /* incompatible pointer assignment */
   W_UNKNOWN_MODEL               = 130, /* Unknown memory model */
   E_UNKNOWN_TARGET              = 131, /* target not defined  */
   W_INDIR_BANKED                = 132, /* Indirect call to a banked fun */
@@ -234,7 +234,17 @@ enum {
   W_UNIVERSAL_C99               = 205, /* universal character names are only valid in C99 */
   E_SHORTLONG                   = 206, /* Invalid combination of short / long */
   E_INTEGERSUFFIX               = 207, /* Invalid integer suffix */
-  E_AUTO_ADDRSPACE              = 208, /* named address space for auto var*/
+  E_AUTO_ADDRSPACE              = 208, /* named address space for auto var */
+  W_NORETURNRETURN              = 209, /* return in _noreturn function */
+  E_STRUCT_REDEF                = 210, /* struct or union tag redefined */
+  W_STRING_CANNOT_BE_TERMINATED = 211, /* string cannot be terminated within array */
+  W_LONGLONG_LITERAL            = 212, /* long long literal */
+  S_SYNTAX_ERROR                = 213, /* syntax error */
+  E_MIXING_CONFIG               = 214, /* mixing __CONFIG and CONFIG directives */
+  W_STATIC_ASSERTION            = 215, /* static assertion failed */
+  E_ALIGNAS                     = 216, /* invalid alignment specified */
+  W_INTERNAL_ERROR              = 217, /* warning for non-fatal internal errors - things that should not have happened, but can be handled */
+  W_UNRECOGNIZED_ASM            = 218, /* unrecognized asm instruction in peephole optimizer */
 
   /* don't touch this! */
   NUMBER_OF_ERROR_MESSAGES             /* Number of error messages */
@@ -266,7 +276,9 @@ enum _ERROR_LOG_LEVEL {
   /** Most warnings. */
   ERROR_LEVEL_WARNING,
   /** Errors only. */
-  ERROR_LEVEL_ERROR
+  ERROR_LEVEL_ERROR,
+  /** Syntax error only. */
+  ERROR_LEVEL_SYNTAX_ERROR
 };
 
 typedef enum _ERROR_LOG_LEVEL ERROR_LOG_LEVEL;

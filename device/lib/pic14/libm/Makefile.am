@@ -33,13 +33,14 @@ libm_a_SOURCES += tanhf.c
 
 libm_a_CFLAGS = -p$(ARCH) $(AM_CFLAGS)
 
-if HAVE_NEW_PICS
+if ENABLE_ENHANCED_PICS
 noinst_LIBRARIES += libme.a
-
+endif ENABLE_ENHANCED_PICS
 libme_a_SOURCES = $(libm_a_SOURCES)
+libme_a_CFLAGS = -p$(EARCH) $(AM_CFLAGS)
+if !ENABLE_EXTENDED_INSTRUCTIONS
+libme_a_CFLAGS += --no-extended-instructions
+endif !ENABLE_EXTENDED_INSTRUCTIONS
 
-limbe_a_CFLAGS = -p$(EARCH) $(AM_CFLAGS)
-endif
 
 include $(top_srcdir)/Makefile.common
-

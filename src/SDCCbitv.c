@@ -97,6 +97,7 @@ bitVectSetBit (bitVect * bvp, int pos)
   int byteSize;
   int offset;
 
+  assert (pos>=0);
   /* if set is null then allocate it */
   if (!bvp)
     bvp = newBitVect (bitVectDefault);	/* allocate for twice the size */
@@ -119,6 +120,7 @@ bitVectUnSetBit (const bitVect *bvp, int pos)
   int byteSize;
   int offset;
 
+  assert (pos>=0);
   if (!bvp)
     return;
 
@@ -140,6 +142,7 @@ bitVectBitValue (const bitVect *bvp, int pos)
   int byteSize;
   int offset;
 
+  assert (pos>=0);
   if (!bvp)
     return 0;
 
@@ -249,7 +252,7 @@ bitVectIntersect (bitVect * bvp1, bitVect * bvp2)
 /*                       if the vectors have any common bits set   */
 /*-----------------------------------------------------------------*/
 int 
-bitVectBitsInCommon (bitVect * bvp1, bitVect * bvp2)
+bitVectBitsInCommon (const bitVect * bvp1, const bitVect * bvp2)
 {
   int i;
   int nbits;
@@ -325,7 +328,7 @@ bitVectCplAnd (bitVect * bvp1, bitVect * bvp2)
 /* bitVectIsZero - bit vector has all bits turned off              */
 /*-----------------------------------------------------------------*/
 int 
-bitVectIsZero (bitVect * bvp)
+bitVectIsZero (const bitVect * bvp)
 {
   int i;
 
@@ -367,7 +370,7 @@ bitVectEqual (bitVect * bvp1, bitVect * bvp2)
 /* bitVectCopy - creates a bitvector from another bit Vector       */
 /*-----------------------------------------------------------------*/
 bitVect *
-bitVectCopy (bitVect * bvp)
+bitVectCopy (const bitVect * bvp)
 {
   bitVect *newBvp;
   int i;
@@ -386,7 +389,7 @@ bitVectCopy (bitVect * bvp)
 /* bitVectnBitsOn - returns the number of bits that are on         */
 /*-----------------------------------------------------------------*/
 int 
-bitVectnBitsOn (bitVect * bvp)
+bitVectnBitsOn (const bitVect * bvp)
 {
   int i, j;
   unsigned char byte;
@@ -447,7 +450,7 @@ bitVectnBitsOn (bitVect * bvp)
 /* bitVectFirstBit - returns the key for the first bit that is on  */
 /*-----------------------------------------------------------------*/
 int 
-bitVectFirstBit (bitVect * bvp)
+bitVectFirstBit (const bitVect * bvp)
 {
   int i;
 

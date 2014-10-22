@@ -5,7 +5,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -32,10 +32,9 @@
 #define true 1
 #define false 0
 
-#if defined (SDCC_ds390) || defined (SDCC_mcs51) || defined (SDCC_xa51)
+#if defined (__SDCC_ds390) || defined (__SDCC_mcs51) || defined (__SDCC_xa51)
  /* The ports that have __bit and use it as an imperfect substitute for bool */
  #define _Bool __bit
- #define BOOL  __bit
  #define bool  _Bool
  #define __bool_true_false_are_defined 1
  #define __SDCC_WEIRD_BOOL 1

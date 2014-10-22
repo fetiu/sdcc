@@ -5,7 +5,7 @@
 #include <testfwk.h>
 
 /* 64 bit hosts */
-#if defined(__alpha__) || defined(__x86_64__) || defined(__sparc64__)
+#if defined(__alpha__) || defined(__x86_64__) || defined(__sparc64__) || defined(__PPC64__)
 #  define LONG int
 #else
 #  define LONG long
@@ -61,7 +61,7 @@ testOpOp (void)
   ASSERT (ss == 0x7e02);
   ss = vuc * vuc;
   ASSERT (ss == (short) 0xfc04);
-#ifdef SDCC
+#ifdef __SDCC
   /* after promotion the result of the multiplication is 'signed int', which overflows! */
   ASSERT(vuc * vuc < 1);
 #endif
@@ -221,3 +221,4 @@ testOpOp (void)
   ASSERT (150  + 150  == 300);
   ASSERT (160u + 160u == 320);
 }
+

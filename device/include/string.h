@@ -6,7 +6,7 @@
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -14,7 +14,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -39,7 +39,22 @@
   typedef unsigned int size_t;
 #endif
 
-#if !defined(SDCC_z80) && !defined(SDCC_z180) && !defined(SDCC_gbz80)
+/* Bounds-checking interfaces from annex K of the C11 standard. */
+#if defined (__STDC_WANT_LIB_EXT1__) && __STDC_WANT_LIB_EXT1__
+
+#ifndef __RSIZE_T_DEFINED
+#define __RSIZE_T_DEFINED
+typedef size_t rsize_t;
+#endif
+
+#ifndef __ERRNO_T_DEFINED
+#define __ERRNO_T_DEFINED
+typedef int errno_t;
+#endif
+
+#endif
+
+#if defined(__SDCC_mcs51) || defined(__SDCC_hc08) || defined(__SDCC_ds390) || defined(__SDCC_pic14) || defined(__SDCC_pic16)
 #define __SDCC_BROKEN_STRING_FUNCTIONS
 #endif
 
@@ -50,7 +65,7 @@
 /* Copying functions: */
 extern void *memcpy (void * /*restrict */ dest, const void * /*restrict*/ src, size_t n);
 extern void *memmove (void *dest, const void *src, size_t n);
-extern char *strcpy (char * /*restrit*/ dest, const char * /*restrict*/ src);
+extern char *strcpy (char * /*restrict*/ dest, const char * /*restrict*/ src);
 extern char *strncpy(char * /*restrict*/ dest, const char * /*restrict*/ src, size_t n);
 
 /* Concatenation functions: */
@@ -93,14 +108,16 @@ extern void *memset (void *s, int c, size_t n);
 /* extern char *strerror(int errnum); */
 extern size_t strlen (const char *s);
 
-#ifdef SDCC_ds390
+#ifdef __SDCC_ds390
 extern void __xdata * memcpyx(void __xdata *, void __xdata *, int) __naked;
 #endif
 
-#if defined(SDCC_z80) || defined(SDCC_z180) || defined(SDCC_r2k)
+#if defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_r2k) || defined(__SDCC_r3ka)
 #define memcpy(dst, src, n) __builtin_memcpy(dst, src, n)
+#define strcpy(dst, src) __builtin_strcpy(dst, src)
+#define strncpy(dst, src, n) __builtin_strncpy(dst, src, n)
+#define strchr(s, c) __builtin_strchr(s, c)
 #define memset(dst, c, n) __builtin_memset(dst, c, n)
 #endif
 
 #endif
-

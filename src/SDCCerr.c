@@ -122,7 +122,7 @@ struct
   { E_LVALUE_CONST, ERROR_LEVEL_ERROR,
      "Lvalue specifies constant object", 0 },
   { E_ILLEGAL_ADDR, ERROR_LEVEL_ERROR,
-     "'&' illegal operand , %s", 0 },
+     "'&' illegal operand, %s", 0 },
   { E_CAST_ILLEGAL, ERROR_LEVEL_ERROR,
      "illegal cast (cast cannot be aggregate)", 0 },
   { E_MULT_INTEGRAL, ERROR_LEVEL_ERROR,
@@ -214,7 +214,7 @@ struct
   { W_NO_SIDE_EFFECTS, ERROR_LEVEL_WARNING,
      "%s expression has NO side effects. Expr eliminated", 0 },
   { W_CONST_TOO_LARGE, ERROR_LEVEL_PEDANTIC,
-     "constant value '%s', out of range.", 0 },
+     "constant value '%ld', out of range.", 0 },
   { W_BAD_COMPARE, ERROR_LEVEL_WARNING,
      "comparison will either, ALWAYs succeed or ALWAYs fail", 0 },
   { E_TERMINATING, ERROR_LEVEL_ERROR,
@@ -236,10 +236,10 @@ struct
   { E_EXTERN_MISMATCH, ERROR_LEVEL_ERROR,
      "extern definition for '%s' mismatches with declaration.", 0 },
   { E_NONRENT_ARGS, ERROR_LEVEL_ERROR,
-     "Functions called via pointers must be 'reentrant' to take this many arguments", 0 },
+     "Functions called via pointers must be 'reentrant' to take this many (bytes for) arguments", 0 },
   { W_DOUBLE_UNSUPPORTED, ERROR_LEVEL_WARNING,
      "type 'double' not supported assuming 'float'", 0 },
-  { W_COMP_RANGE, ERROR_LEVEL_WARNING,
+  { W_COMP_RANGE, ERROR_LEVEL_PEDANTIC,
      "comparison is always %s due to limited range of data type", 0 },
   { W_FUNC_NO_RETURN, ERROR_LEVEL_WARNING,
      "no 'return' statement found for function '%s'", 0 },
@@ -369,7 +369,7 @@ struct
      "symbol name too long, truncated to %d chars", 0 },
   { W_CAST_STRUCT_PTR, ERROR_LEVEL_WARNING,
      "cast of struct %s * to struct %s * ", 0 },
-  { W_LIT_OVERFLOW, ERROR_LEVEL_WARNING,
+  { W_LIT_OVERFLOW, ERROR_LEVEL_PEDANTIC,
      "overflow in implicit constant conversion", 0 },
   { E_PARAM_NAME_OMITTED, ERROR_LEVEL_ERROR,
      "in function %s: name omitted for parameter %d", 0 },
@@ -434,7 +434,7 @@ struct
      "flexible array member not at end of struct", 0 },
   { E_FLEXARRAY_INEMPTYSTRCT, ERROR_LEVEL_ERROR,
      "flexible array in otherwise empty struct", 0 },
-  { W_EMPTY_SOURCE_FILE, ERROR_LEVEL_WARNING,
+  { W_EMPTY_SOURCE_FILE, ERROR_LEVEL_PEDANTIC,
      "ISO C forbids an empty source file", 0 },
   { W_BAD_PRAGMA_ARGUMENTS, ERROR_LEVEL_WARNING,
      "#pragma %s: bad argument(s); pragma ignored", 0 },
@@ -472,35 +472,55 @@ struct
      "Invalid integer suffix '%s' in integer constant", 0},
   { E_AUTO_ADDRSPACE, ERROR_LEVEL_ERROR,
      "named address space not allowed for automatic var '%s'", 0},
+  { W_NORETURNRETURN, ERROR_LEVEL_WARNING,
+     "return in _Noreturn function", 0},
+  { E_STRUCT_REDEF, ERROR_LEVEL_ERROR,
+     "struct/union '%s' redefined", 0 },
+  { W_STRING_CANNOT_BE_TERMINATED, ERROR_LEVEL_PEDANTIC,
+    "string '%s'cannot be terminated within array", 0 },
+  { W_LONGLONG_LITERAL, ERROR_LEVEL_WARNING,
+    "support for long long literals is incomplete", 0 },
+  { S_SYNTAX_ERROR, ERROR_LEVEL_SYNTAX_ERROR,
+    "token -> '%s' ; column %d", 0 },
+  { E_MIXING_CONFIG, ERROR_LEVEL_ERROR,
+    "mixing __CONFIG and CONFIG directives", 0 },
+  { W_STATIC_ASSERTION, ERROR_LEVEL_WARNING,
+    "static assertion failed: %s", 0 },
+  { E_ALIGNAS, ERROR_LEVEL_ERROR,
+    "invalid alignment specified: %d", 0 },
+  { W_INTERNAL_ERROR, ERROR_LEVEL_WARNING,
+     "Non-fatal Compiler Internal Problem in file '%s' line number '%d' : %s \n"
+     "Contact Author with source code", 0 },
+  { W_UNRECOGNIZED_ASM, ERROR_LEVEL_INFO,
+     "%s() failed to parse line node, assuming %d bytes\n'%s'\n", 0 },
 };
 
-/*
--------------------------------------------------------------------------------
-SetErrorOut - Set the error output file
-
--------------------------------------------------------------------------------
-*/
-
+/* -------------------------------------------------------------------------------
+ * SetErrorOut - Set the error output file
+ * -------------------------------------------------------------------------------
+ */
 FILE *
 SetErrorOut (FILE *NewErrorOut)
 {
-  _SDCCERRG.out = NewErrorOut ;
+  _SDCCERRG.out = NewErrorOut;
 
-  return NewErrorOut ;
+  return NewErrorOut;
 }
 
+/* -------------------------------------------------------------------------------
+ * setErrorLogLevel - Set the error log level:
+ *                    which level has to be treated as an error
+ * -------------------------------------------------------------------------------
+ */
 void setErrorLogLevel (ERROR_LOG_LEVEL level)
 {
   _SDCCERRG.logLevel = level;
 }
 
-/*
--------------------------------------------------------------------------------
-vwerror - Output a standard error message with variable number of arguments
-
--------------------------------------------------------------------------------
-*/
-
+/* -------------------------------------------------------------------------------
+ * vwerror - Output a standard error message with variable number of arguments
+ * -------------------------------------------------------------------------------
+ */
 int
 vwerror (int errNum, va_list marker)
 {
@@ -511,28 +531,28 @@ vwerror (int errNum, va_list marker)
 
   if (errNum > NELEM (ErrTab))
     {
-      fprintf (_SDCCERRG.out, 
+      fprintf (_SDCCERRG.out,
               "Internal error: bad error number %d.", errNum);
       return 0;
     }
   if (NELEM (ErrTab) != NUMBER_OF_ERROR_MESSAGES || ErrTab[errNum].errIndex != errNum)
     {
-      fprintf (_SDCCERRG.out, 
+      fprintf (_SDCCERRG.out,
               "Internal error: error table entry for %d inconsistent.", errNum);
       return 0;
     }
 
   if ((ErrTab[errNum].errType >= _SDCCERRG.logLevel) && (!ErrTab[errNum].disabled))
     {
-      if (ErrTab[errNum].errType == ERROR_LEVEL_ERROR || _SDCCERRG.werror)
-        fatalError++ ;
-  
+      if (ErrTab[errNum].errType >= ERROR_LEVEL_ERROR || _SDCCERRG.werror)
+        fatalError++;
+
       if (filename && lineno)
         {
           if (_SDCCERRG.style)
-            fprintf (_SDCCERRG.out, "%s(%d) : ",filename,lineno);
+            fprintf (_SDCCERRG.out, "%s(%d) : ", filename, lineno);
           else
-            fprintf (_SDCCERRG.out, "%s:%d: ",filename,lineno);
+            fprintf (_SDCCERRG.out, "%s:%d: ", filename, lineno);
         }
       else if (lineno)
         {
@@ -545,6 +565,10 @@ vwerror (int errNum, va_list marker)
 
       switch (ErrTab[errNum].errType)
         {
+        case ERROR_LEVEL_SYNTAX_ERROR:
+          fprintf (_SDCCERRG.out, "syntax error: ");
+          break;
+
         case ERROR_LEVEL_ERROR:
           fprintf (_SDCCERRG.out, "error %d: ", errNum);
           break;
@@ -562,12 +586,12 @@ vwerror (int errNum, va_list marker)
           break;
 
         default:
-          break;                  
+          break;
         }
-    
-        vfprintf (_SDCCERRG.out, ErrTab[errNum].errText,marker);
-        fprintf (_SDCCERRG.out, "\n");
-        return 1;
+
+      vfprintf (_SDCCERRG.out, ErrTab[errNum].errText, marker);
+      fprintf (_SDCCERRG.out, "\n");
+      return 1;
     }
   else
     {
@@ -576,13 +600,10 @@ vwerror (int errNum, va_list marker)
     }
 }
 
-/*
--------------------------------------------------------------------------------
-werror - Output a standard error message with variable number of arguments
-
--------------------------------------------------------------------------------
-*/
-
+/* -------------------------------------------------------------------------------
+ * werror - Output a standard error message with variable number of arguments
+ * -------------------------------------------------------------------------------
+ */
 int
 werror (int errNum, ...)
 {
@@ -594,14 +615,11 @@ werror (int errNum, ...)
   return ret;
 }
 
-/*
--------------------------------------------------------------------------------
-werrorfl - Output a standard error message with variable number of arguments.
-           Use a specified filename and line number instead of the default.
-
--------------------------------------------------------------------------------
-*/
-
+/* -------------------------------------------------------------------------------
+ * werrorfl - Output a standard error message with variable number of arguments.
+ *            Use a specified filename and line number instead of the default.
+ * -------------------------------------------------------------------------------
+ */
 int
 werrorfl (char *newFilename, int newLineno, int errNum, ...)
 {
@@ -622,13 +640,11 @@ werrorfl (char *newFilename, int newLineno, int errNum, ...)
   return ret;
 }
 
-
-/*
--------------------------------------------------------------------------------
-fatal - Output a standard error message with variable number of arguments and
-        call exit()
--------------------------------------------------------------------------------
-*/
+/* -------------------------------------------------------------------------------
+ * fatal - Output a standard error message with variable number of arguments and
+ *         call exit()
+ * -------------------------------------------------------------------------------
+ */
 void
 fatal (int exitCode, int errNum, ...)
 {
@@ -640,24 +656,20 @@ fatal (int exitCode, int errNum, ...)
   exit (exitCode);
 }
 
-/*
--------------------------------------------------------------------------------
-style - Change the output error style to MSVC
--------------------------------------------------------------------------------
-*/
-
+/* -------------------------------------------------------------------------------
+ * style - Change the output error style to MSVC
+ * -------------------------------------------------------------------------------
+ */
 void
 MSVC_style (int style)
 {
   _SDCCERRG.style = style;
 }
 
-/*
--------------------------------------------------------------------------------
-disabled - Disable output of specified warning
--------------------------------------------------------------------------------
-*/
-
+/* -------------------------------------------------------------------------------
+ * disabled - Disable output of specified warning
+ * -------------------------------------------------------------------------------
+ */
 void
 setWarningDisabled (int errNum)
 {
@@ -665,12 +677,10 @@ setWarningDisabled (int errNum)
     ErrTab[errNum].disabled = 1;
 }
 
-/*
--------------------------------------------------------------------------------
-Set the flag to treat warnings as errors
--------------------------------------------------------------------------------
-*/
-
+/* -------------------------------------------------------------------------------
+ * Set the flag to treat warnings as errors
+ * -------------------------------------------------------------------------------
+ */
 void
 setWError (int flag)
 {

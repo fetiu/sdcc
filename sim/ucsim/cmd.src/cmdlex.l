@@ -8,6 +8,8 @@ static int uc_yy_input(char *buf, int max_size);
 #define YY_INPUT(buf,result,max_size) result = uc_yy_input(buf, max_size) 
 %}
 
+%option nounput
+
 %%
 
 [ \t]*			;
@@ -48,20 +50,31 @@ void
 uc_yy_set_string_to_parse(const char *str)
 {
   string_to_parse = strdup(str);
+  YY_FLUSH_BUFFER;
 }
+
+static const char *string_ptr = NULL;
 
 void
 uc_yy_free_string_to_parse()
 {
   free(string_to_parse);
+  string_ptr=NULL;
 }
 
 static int
 uc_yy_input(char *buf, int max_size)
 {
-  static const char *string_ptr = NULL;
+  //printf("\nuc_yy_input called for max=%d\n",max_size);
   if (NULL == string_ptr)
-    string_ptr = string_to_parse;
+    {
+      string_ptr = string_to_parse;
+      //printf("\nstring_ptr is NULL, start over with %s\n",string_to_parse);
+    }
+  else
+  {
+    //printf("\ncontinue with %s\n",string_ptr);
+  }
 
   if (NULL != string_ptr)
     {
@@ -71,6 +84,7 @@ uc_yy_input(char *buf, int max_size)
         n = lrem;
       strncpy(buf, string_ptr, n);
       string_ptr += n;
+      //printf("\n%d chars copied, left=%s\n",n,string_ptr);
       return n;
     }
   else

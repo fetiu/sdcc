@@ -844,14 +844,15 @@ pic16_allocDirReg (operand *op )
         reg = pic16_dirregWithName(name);
 
         if(!reg) {
-          int address = 0;
           int regtype = REG_GPR;
 
                 /* if this is at an absolute address, then get the address. */
-                if (SPEC_ABSA ( OP_SYM_ETYPE(op)) ) {
-                        address = SPEC_ADDR ( OP_SYM_ETYPE(op));
-//                      fprintf(stderr,"reg %s is at an absolute address: 0x%03x\n",name,address);
-                }
+                if (0 && SPEC_ABSA ( OP_SYM_ETYPE(op)) )
+                  {
+                    int address = 0;
+                    address = SPEC_ADDR ( OP_SYM_ETYPE(op));
+                    fprintf(stderr,"reg %s is at an absolute address: 0x%03x\n",name,address);
+                  }
 
                 /* Register wasn't found in hash, so let's create
                  * a new one and put it in the hash table AND in the
@@ -3755,8 +3756,10 @@ packForReceive (iCode * ic, eBBlock * ebp)
 static void
 packForPush (iCode * ic, eBBlock * ebp)
 {
-  iCode *dic;
+  iCode *dic, *lic;
   const char *iLine;
+  bitVect *dbv;
+  int disallowHiddenAssignment = 0;
 
   debugLog ("%s\n", __FUNCTION__);
   if (ic->op != IPUSH || !IS_ITEMP (IC_LEFT (ic)))
@@ -3797,7 +3800,41 @@ packForPush (iCode * ic, eBBlock * ebp)
   if((OP_LIVEFROM(IC_RIGHT(dic))==0) || (OP_LIVETO(IC_RIGHT(dic))==0))
     return;
 //  debugf2("IC_RIGHT(dic): from %d to %d\n", OP_LIVEFROM(IC_RIGHT(dic)), OP_LIVETO(IC_RIGHT(dic)));
+    
+  /* If the defining iCode is outside of this block, we need to recompute */
+  /* ebp (see the mcs51 version of packForPush), but we weren't passed    */
+  /* enough data to do that. Just bail out instead if that happens. */
+  if (dic->seq < ebp->fSeq)
+    return;
 
+  if (IS_SYMOP (IC_RIGHT (dic)))
+    {
+      if (IC_RIGHT (dic)->isvolatile)
+        return;
+
+      if (OP_SYMBOL (IC_RIGHT (dic))->addrtaken || isOperandGlobal (IC_RIGHT (dic)))
+        disallowHiddenAssignment = 1;
+
+      /* make sure the right side does not have any definitions
+         inbetween */
+      dbv = OP_DEFS (IC_RIGHT (dic));
+      for (lic = ic; lic && lic != dic; lic = lic->prev)
+        {
+          if (bitVectBitValue (dbv, lic->key))
+            return;
+          if (disallowHiddenAssignment && (lic->op == CALL || lic->op == PCALL || POINTER_SET (lic)))
+            return;
+        }
+      /* make sure they have the same type */
+      if (IS_SPEC (operandType (IC_LEFT (ic))))
+        {
+          sym_link *itype = operandType (IC_LEFT (ic));
+          sym_link *ditype = operandType (IC_RIGHT (dic));
+
+          if (SPEC_USIGN (itype) != SPEC_USIGN (ditype) || SPEC_LONG (itype) != SPEC_LONG (ditype))
+            return;
+        }
+    }
 
 
   /*
@@ -3809,6 +3846,16 @@ packForPush (iCode * ic, eBBlock * ebp)
     {
       /* we now we know that it has one & only one def & use
          and the that the definition is an assignment */
+
+      /* extend the live range of replaced operand if needed */
+      if (IS_SYMOP (IC_RIGHT (dic)) && OP_SYMBOL (IC_RIGHT (dic))->liveTo < ic->seq)
+        {
+          OP_SYMBOL (IC_RIGHT (dic))->liveTo = ic->seq;
+        }
+      bitVectUnSetBit (OP_SYMBOL (IC_RESULT (dic))->defs, dic->key);
+      if (IS_ITEMP (IC_RIGHT (dic)))
+        OP_USES (IC_RIGHT (dic)) = bitVectSetBit (OP_USES (IC_RIGHT (dic)), ic->key);
+
       IC_LEFT (ic) = IC_RIGHT (dic);
 
       iLine = printILine(dic);
@@ -4401,28 +4448,26 @@ pic16_assignRegisters (ebbIndex * ebbi)
     pic16_packRegisters (ebbs[i]);
 
 
-  {
-    reg_info *reg;
-    int hkey;
+  if (0)
+    {
+      reg_info *reg;
+      int hkey;
 
-    debugLog("dir registers allocated so far:\n");
-    reg = hTabFirstItem(dynDirectRegNames, &hkey);
+      debugLog("dir registers allocated so far:\n");
+      reg = hTabFirstItem(dynDirectRegNames, &hkey);
 
-#if 0
-    while(reg) {
-      debugLog("  -- #%d reg = %s  key %d, rIdx = %d, size %d\n",i++,reg->name,hkey, reg->rIdx,reg->size);
-//      fprintf(stderr, "  -- #%d reg = %s  key %d, rIdx = %d, size %d\n",i++,reg->name,hkey, reg->rIdx,reg->size);
-      reg = hTabNextItem(dynDirectRegNames, &hkey);
+      while(reg) {
+          debugLog("  -- #%d reg = %s  key %d, rIdx = %d, size %d\n",i++,reg->name,hkey, reg->rIdx,reg->size);
+          //      fprintf(stderr, "  -- #%d reg = %s  key %d, rIdx = %d, size %d\n",i++,reg->name,hkey, reg->rIdx,reg->size);
+          reg = hTabNextItem(dynDirectRegNames, &hkey);
+      }
     }
-#endif
-
-  }
 
   /* liveranges probably changed by register packing
      so we compute them again */
-  recomputeLiveRanges (ebbs, count);
+  recomputeLiveRanges (ebbs, count, FALSE);
 
-  if (options.dump_pack)
+  if (options.dump_i_code)
     dumpEbbsToFileExt (DUMP_PACK, ebbi);
 
   /* first determine for each live range the number of
@@ -4466,7 +4511,7 @@ pic16_assignRegisters (ebbIndex * ebbi)
   /* redo that offsets for stacked automatic variables */
   redoStackOffsets ();
 
-  if (options.dump_rassgn)
+  if (options.dump_i_code)
     dumpEbbsToFileExt (DUMP_RASSGN, ebbi);
 
 //  dumpLR(ebbs, count);

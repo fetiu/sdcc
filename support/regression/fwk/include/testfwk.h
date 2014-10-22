@@ -11,14 +11,14 @@ void __printf(const char *szFormat, ...);
 #define LOG(_a)     /* hollow log */
 #endif
 
-#ifdef SDCC
+#ifdef __SDCC
  #include <sdcc-lib.h>
 #else
  #define _AUTOMEM
  #define _STATMEM
 #endif
 
-#if defined(PORT_HOST) || defined(SDCC_z80) || defined(SDCC_z180) || defined(SDCC_r2k)|| defined(SDCC_gbz80)
+#if defined(PORT_HOST) || defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_r2k) || defined(__SDCC_r3ka) || defined(__SDCC_gbz80) || defined(__SDCC_stm8)
 # define __data
 # define __idata
 # define __pdata
@@ -26,16 +26,19 @@ void __printf(const char *szFormat, ...);
 # define __code
 # define __near
 # define __far
-# define __at(x)
 # define __reentrant
 #endif
 
-#if defined(SDCC_hc08)
+#if defined(PORT_HOST)
+# define __at(x)
+#endif
+
+#if defined(__SDCC_hc08) || defined(__SDCC_s08)
 # define __idata __data
 # define __pdata __data
 #endif
 
-#if defined(SDCC_pic16)
+#if defined(__SDCC_pic16)
 # define __idata __data
 # define __xdata __data
 # define __pdata __data
@@ -48,7 +51,7 @@ __code const char *__getSuiteName (void);
 void __runSuite (void);
 
 #define ASSERT(_a)  (++__numTests, (_a) ? (void)0 : __fail ("Assertion failed", #_a, __FILE__, __LINE__))
-#define ASSERT_FAILED(_a)  (++__numTests, (_a) ? 0 : (__fail ("Assertion failed", #_a, __FILE__, __LINE__), 1))
+#define ASSERTFALSE(_a)  ASSERT(!(_a))
 #define FAIL()      FAILM("Failure")
 #define FAILM(_a)   __fail(_a, #_a, __FILE__, __LINE__)
 

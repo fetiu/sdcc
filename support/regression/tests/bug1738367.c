@@ -4,7 +4,7 @@
 
 #include <testfwk.h>
 
-#ifdef SDCC
+#ifdef __SDCC
 #pragma std_sdcc99
 #endif
 
@@ -50,6 +50,7 @@ bool ternary2_inv(unsigned char status)
 void
 testBug(void)
 {
+#ifndef __SDCC_pic16
 #ifdef __bool_true_false_are_defined
 	ASSERT(!ternary(0x00));
 	ASSERT( ternary(0x10));
@@ -70,4 +71,5 @@ testBug(void)
 	ASSERT(!ternary2_inv(0x10));
 	ASSERT(!ternary2_inv(1==1));
 #endif //__bool_true_false_are_defined
+#endif
 }

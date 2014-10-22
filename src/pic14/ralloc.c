@@ -3069,6 +3069,13 @@ packRegsForOneuse (iCode * ic, operand * op, eBBlock * ebp)
                         return dic;
                 }
                 dic = dic->next;
+
+                if (!dic)
+                  {
+                    /* Not sure why we advance dic ... Make sure that we do
+                     * not SEGFAULT by dereferencing a NULL pitr later on. */
+                    return NULL;
+                  } // if
         }
 
 
@@ -3374,7 +3381,9 @@ packForReceive (iCode * ic, eBBlock * ebp)
 static void
 packForPush (iCode * ic, eBBlock * ebp)
 {
-        iCode *dic;
+        iCode *dic, *lic;
+        bitVect *dbv;
+        int disallowHiddenAssignment = 0;
 
         debugLog ("%s\n", __FUNCTION__);
         if (ic->op != IPUSH || !IS_ITEMP (IC_LEFT (ic)))
@@ -3392,6 +3401,45 @@ packForPush (iCode * ic, eBBlock * ebp)
 
         if (dic->op != '=' || POINTER_SET (dic))
                 return;
+
+        /* If the defining iCode is outside of this block, we need to recompute */
+        /* ebp (see the mcs51 version of packForPush), but we weren't passed    */
+        /* enough data to do that. Just bail out instead if that happens. */
+        if (dic->seq < ebp->fSeq)
+                return;
+
+        if (IS_SYMOP (IC_RIGHT (dic))) {
+                if (IC_RIGHT (dic)->isvolatile)
+                        return;
+
+                if (OP_SYMBOL (IC_RIGHT (dic))->addrtaken || isOperandGlobal (IC_RIGHT (dic)))
+                        disallowHiddenAssignment = 1;
+
+                /* make sure the right side does not have any definitions
+                   inbetween */
+                dbv = OP_DEFS (IC_RIGHT (dic));
+                for (lic = ic; lic && lic != dic; lic = lic->prev) {
+                        if (bitVectBitValue (dbv, lic->key))
+                                return;
+                        if (disallowHiddenAssignment && (lic->op == CALL || lic->op == PCALL || POINTER_SET (lic)))
+                                return;
+                }
+                /* make sure they have the same type */
+                if (IS_SPEC (operandType (IC_LEFT (ic)))) {
+                        sym_link *itype = operandType (IC_LEFT (ic));
+                        sym_link *ditype = operandType (IC_RIGHT (dic));
+
+                        if (SPEC_USIGN (itype) != SPEC_USIGN (ditype) || SPEC_LONG (itype) != SPEC_LONG (ditype))
+                                return;
+                }
+                /* extend the live range of replaced operand if needed */
+                if (OP_SYMBOL (IC_RIGHT (dic))->liveTo < ic->seq) {
+                        OP_SYMBOL (IC_RIGHT (dic))->liveTo = ic->seq;
+                }
+                bitVectUnSetBit (OP_SYMBOL (IC_RESULT (dic))->defs, dic->key);
+        }
+        if (IS_ITEMP (IC_RIGHT (dic)))
+                OP_USES (IC_RIGHT (dic)) = bitVectSetBit (OP_USES (IC_RIGHT (dic)), ic->key);
 
                 /* we now we know that it has one & only one def & use
         and the that the definition is an assignment */
@@ -3899,7 +3947,7 @@ pic14_assignRegisters (ebbIndex *ebbi)
         }
     }
 
-  if (options.dump_pack)
+  if (options.dump_i_code)
     dumpEbbsToFileExt (DUMP_PACK, ebbi);
 
   /* first determine for each live range the number of
@@ -3926,7 +3974,7 @@ pic14_assignRegisters (ebbIndex *ebbi)
   /* redo that offsets for stacked automatic variables */
   redoStackOffsets ();
 
-  if (options.dump_rassgn)
+  if (options.dump_i_code)
     dumpEbbsToFileExt (DUMP_RASSGN, ebbi);
 
   /* now get back the chain */

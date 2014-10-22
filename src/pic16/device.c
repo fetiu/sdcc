@@ -1,23 +1,23 @@
 /*-------------------------------------------------------------------------
-
   device.c - Accomodates subtle variations in PIC16 devices
 
-   Written By -  Scott Dattalo scott@dattalo.com
-   Ported to PIC16 By -  Martin Dubuc m.dubuc@rogers.com
+  Copyright (C) 2000, Scott Dattalo scott@dattalo.com
+  PIC16 port:
+  Copyright (C) 2002, Martin Dubuc m.dubuc@rogers.com
 
-   This program is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
-   later version.
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the
+  Free Software Foundation; either version 2, or (at your option) any
+  later version.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 -------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -32,7 +32,7 @@
 #include "device.h"
 
 void pic16_printIval (symbol * sym, sym_link * type, initList * ilist, char ptype, void *p);
-extern void pic16_pCodeConstString (char *name, char *value, unsigned length);
+extern void pic16_pCodeConstString (char *name, const char *value, unsigned length);
 
 stats_t statistics = { 0, 0, 0, 0 };
 
@@ -57,6 +57,7 @@ static PIC16_device default_device = {
     { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 },
       { 0, 0 }, { 0, 0 }, { 0, 0 } }
   },
+  0,
   NULL
 };
 
@@ -77,13 +78,13 @@ pic16_dump_equates (FILE *of, set *equs)
   if (!r)
     return;
 
-  fprintf (of, "%s", iComments2);
+  fprintf (of, "\n%s", iComments2);
   fprintf (of, ";\tEquates to used internal registers\n");
   fprintf (of, "%s", iComments2);
 
   for (; r; r = setNextItem (equs))
     {
-      fprintf (of, "%s\tequ\t0x%02x\n", r->name, r->address);
+      fprintf (of, "%s\tequ\t0x%03x\n", r->name, r->address);
     } // for
 }
 
@@ -347,7 +348,6 @@ pic16_dump_isection (FILE *of, set *section, int fix)
   else
     {
       unsigned int j = 0;
-      symbol *s1;
 
       sprev = NULL;
       init_addr = SPEC_ADDR (slist[j]->etype);
@@ -356,10 +356,6 @@ pic16_dump_isection (FILE *of, set *section, int fix)
       for (j = 0; j < i; j++)
         {
           s = slist[j];
-          s1 = NULL;
-          if (j < i - 1)
-            s1 = slist[j + 1];
-
           init_addr = SPEC_ADDR (s->etype);
 
           if (sprev && (init_addr > (SPEC_ADDR (sprev->etype) + getSize (sprev->etype))))
@@ -817,6 +813,20 @@ pic16_find_device(const char *name)
                     {
                       d->idInfo.irInfo[val[0]].value = val[1];
                     } // if
+                } // if
+            }
+          else if (0 == strcmp(key, "XINST"))
+            {
+              // XINST %<supported>i
+              res = sscanf(&line[1 + strlen(key)], " %i",
+                           &val[0]);
+              if (res < 1)
+                {
+                  SYNTAX("<supported> (e.g., 1) expected.");
+                }
+              else
+                {
+                  d->xinst = val[0];
                 } // if
             }
           else

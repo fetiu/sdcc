@@ -4,22 +4,22 @@
 
 #include <testfwk.h>
 
-#if defined (SDCC_mcs51)
+#if defined (__SDCC_mcs51)
   __sfr __at 0x8A SFR_LSB;        //timer 0 low byte
   __sfr __at 0x8C SFR_MSB;        //timer 0 high byte
   __sfr16 __at 0x8C8A SFR_16;     //timer 0
   __sfr32 __at 0x8C8ACDCC SFR_32; //timer 0 & 2
-#elif defined (SDCC_ds390)
+#elif defined (__SDCC_ds390)
   __sfr __at 0x8B SFR_LSB;        //timer 1 low byte
   __sfr __at 0x8D SFR_MSB;        //timer 1 high byte
   __sfr16 __at 0x8D8B SFR_16;     //timer 1
-  __sfr32 __at 0x8D8BCDCC SFR_32; //timer 1 & 2
+  __sfr32 __at 0x8D8B8090 SFR_32; //timer 1 & P4 & P1
 #endif
 
 void
 test_sfr (void)
 {
-#if defined (SFR_16)
+#if defined (__SDCC_mcs51) || defined (__SDCC_ds390)
   SFR_16 = 0x00FE;
   ASSERT (SFR_MSB == 0x00);
   ASSERT (SFR_LSB == 0xFE);
@@ -40,3 +40,4 @@ test_sfr (void)
   ASSERT (SFR_32 == 0x10305070);
 #endif
 }
+

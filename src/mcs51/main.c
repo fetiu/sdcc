@@ -1,6 +1,25 @@
-/** @file main.c
-    mcs51 specific general functions.
+/*-------------------------------------------------------------------------
+  main.c - mcs51 specific general functions
 
+  Copyright (C) 1998, Sandeep Dutta . sandeep.dutta@usa.net
+  Copyright (C) 1999, Jean-Louis VERN.jlvern@writeme.com
+  Copyright (C) 2000, Michael Hope
+
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the
+  Free Software Foundation; either version 2, or (at your option) any
+  later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+-------------------------------------------------------------------*/
+/*
     Note that mlh prepended _mcs51_ on the static functions.  Makes
     it easier to set a breakpoint using the debugger.
 */
@@ -9,6 +28,7 @@
 #include "ralloc.h"
 #include "gen.h"
 #include "peep.h"
+#include "rtrack.h"
 #include "dbuf_string.h"
 #include "../SDCCutil.h"
 
@@ -26,6 +46,7 @@ static OPTION _mcs51_options[] =
     { 0, "--pack-iram",      NULL, "Tells the linker to pack variables in internal ram (default)"},
     { 0, "--no-pack-iram",   &options.no_pack_iram, "Deprecated: Tells the linker not to pack variables in internal ram"},
     { 0, "--acall-ajmp",     &options.acall_ajmp, "Use acall/ajmp instead of lcall/ljmp" },
+    { 0, "--no-ret-without-call", &options.no_ret_without_call, "Do not use ret independent of acall/lcall" },
     { 0, NULL }
   };
 
@@ -102,7 +123,7 @@ _mcs51_regparm (sym_link * l, bool reentrant)
   else
     {
       int size = getSize(l);
-      int remain ;
+      int remain;
 
       /* first one goes the usual way to DPTR */
       if (regParmFlg == 0)
@@ -196,7 +217,7 @@ _mcs51_genAssemblerPreamble (FILE * of)
     {
       int i;
       for (i=0; i < 8 ; i++ )
-        fprintf (of,"b1_%d = 0x%x \n",i,8+i);
+        fprintf (of, "\tb1_%d = 0x%x \n", i, 8+i);
     }
 }
 
@@ -306,7 +327,6 @@ hasExtBitOp (int op, int size)
 {
   if (op == RRC
       || op == RLC
-      || op == GETHBIT
       || op == GETABIT
       || op == GETBYTE
       || op == GETWORD
@@ -683,7 +703,7 @@ static int
 getInstructionSize (lineNode *line)
 {
   if (!line->aln)
-    line->aln = asmLineNodeFromLineNode (line);
+    line->aln = (asmLineNodeBase *) asmLineNodeFromLineNode (line);
 
   return line->aln->size;
 }
@@ -692,7 +712,7 @@ static bitVect *
 getRegsRead (lineNode *line)
 {
   if (!line->aln)
-    line->aln = asmLineNodeFromLineNode (line);
+    line->aln = (asmLineNodeBase *) asmLineNodeFromLineNode (line);
 
   return line->aln->regsRead;
 }
@@ -701,7 +721,7 @@ static bitVect *
 getRegsWritten (lineNode *line)
 {
   if (!line->aln)
-    line->aln = asmLineNodeFromLineNode (line);
+    line->aln = (asmLineNodeBase *) asmLineNodeFromLineNode (line);
 
   return line->aln->regsWritten;
 }
@@ -752,13 +772,13 @@ get_model (void)
 */
 static const char *_linkCmd[] =
 {
-  "sdld", "-nf", "\"$1\"", NULL
+  "sdld", "-nf", "$1", NULL
 };
 
 /* $3 is replaced by assembler.debug_opts resp. port->assembler.plain_opts */
 static const char *_asmCmd[] =
 {
-  "sdas8051", "$l", "$3", "\"$2\"", "\"$1.asm\"", NULL
+  "sdas8051", "$l", "$3", "$2", "$1.asm", NULL
 };
 
 static const char * const _libs[] = { "mcs51", STD_LIB, STD_INT_LIB, STD_LONG_LIB, STD_FP_LIB, NULL, };
@@ -780,8 +800,8 @@ PORT mcs51_port =
   {                             /* Assembler */
     _asmCmd,
     NULL,
-    "-plosgffwzc",              /* Options with debug */
-    "-plosgffwz",               /* Options without debug */
+    "-plosgffwy",               /* Options with debug */
+    "-plosgffw",                /* Options without debug */
     0,
     ".asm",
     NULL                        /* no do_assemble function */
@@ -824,15 +844,18 @@ PORT mcs51_port =
     "OSEG    (OVR,DATA)",       // overlay_name
     "GSFINAL (CODE)",           // post_static_name
     "HOME    (CODE)",           // home_name
-    "XISEG   (XDATA)",          // xidata_name - initialized xdata   initialized xdata
+    "XISEG   (XDATA)",          // xidata_name - initialized xdata
     "XINIT   (CODE)",           // xinit_name - a code copy of xiseg
     "CONST   (CODE)",           // const_name - const data (code or not)
     "CABS    (ABS,CODE)",       // cabs_name - const absolute data (code or not)
     "XABS    (ABS,XDATA)",      // xabs_name - absolute xdata/pdata
     "IABS    (ABS,DATA)",       // iabs_name - absolute idata/data
+    NULL,                       // name of segment for initialized variables
+    NULL,                       // name of segment for copies of initialized variables in code space
     NULL,
     NULL,
-    1
+    1,
+    1                           // No fancy alignments supported.
   },
   { _mcs51_genExtraAreas, NULL },
   {
@@ -867,6 +890,7 @@ PORT mcs51_port =
   _mcs51_setDefaultOptions,
   mcs51_assignRegisters,
   _mcs51_getRegName,
+  _mcs51_rtrackUpdate,
   _mcs51_keywords,
   _mcs51_genAssemblerPreamble,
   NULL,                         /* no genAssemblerEnd */
@@ -893,6 +917,7 @@ PORT mcs51_port =
   NULL,                         /* no builtin functions */
   GPOINTER,                     /* treat unqualified pointers as "generic" pointers */
   1,                            /* reset labelKey to 1 */
-  1,                            /* globals & local static allowed */
+  1,                            /* globals & local statics allowed */
+  0,                            /* Number of registers handled in the tree-decomposition-based register allocator in SDCCralloc.hpp */
   PORT_MAGIC
 };

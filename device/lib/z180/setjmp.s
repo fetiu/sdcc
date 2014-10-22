@@ -1,11 +1,11 @@
 ;--------------------------------------------------------------------------
-;  abs.s
+;  setjmp.s
 ;
-;  Copyright (C) 2011, Philipp Klaus Krause
+;  Copyright (C) 2011-2014, Philipp Klaus Krause
 ;
 ;  This library is free software; you can redistribute it and/or modify it
 ;  under the terms of the GNU General Public License as published by the
-;  Free Software Foundation; either version 2.1, or (at your option) any
+;  Free Software Foundation; either version 2, or (at your option) any
 ;  later version.
 ;
 ;  This library is distributed in the hope that it will be useful,
@@ -44,7 +44,6 @@ ___setjmp:
 	xor	a, a
 	ld	l, a
 	ld	h, a
-	ld	hl, #0
 	add	hl, sp
 	ld	2(iy), l
 	ld	3(iy), h
@@ -71,7 +70,7 @@ _longjmp:
 	ld	a, e
 	or	a, d
 	jr	NZ, jump
-	ld	de, #1
+	inc	de
 jump:
 
 	; Restore frame pointer.
@@ -84,8 +83,7 @@ jump:
 	ld	l, 2(iy)
 	ld	h, 3(iy)
 	ld	sp, hl
-	inc	sp
-	inc	sp
+	pop	hl
 
 	; Move return value into hl.
 	ex	de, hl
@@ -95,4 +93,3 @@ jump:
 	ld	b, 1(iy)
 	push	bc
 	ret
-

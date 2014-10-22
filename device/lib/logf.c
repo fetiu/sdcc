@@ -1,11 +1,11 @@
 /*-------------------------------------------------------------------------
    logf.c - Computes the natural log of a 32 bit float as outlined in [1].
 
-   Copyright (C) 2001, 2002, Jesus Calvino-Fraga, jesusc@ieee.org 
+   Copyright (C) 2001, 2002, Jesus Calvino-Fraga, jesusc@ieee.org
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2.1, or (at your option) any
+   Free Software Foundation; either version 2, or (at your option) any
    later version.
 
    This library is distributed in the hope that it will be useful,
@@ -13,7 +13,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License 
+   You should have received a copy of the GNU General Public License
    along with this library; see the file COPYING. If not, write to the
    Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.
@@ -31,14 +31,14 @@
 
 /* Version 1.0 - Initial release */
 
-#define SDCC_MATH_LIB
+#define __SDCC_MATH_LIB
 #include <math.h>
 #include <errno.h>
 
 
 #ifdef MATH_ASM_MCS51
 
-#define SDCC_FLOAT_LIB
+#define __SDCC_FLOAT_LIB
 #include <float.h>
 
 // TODO: share with other temps
@@ -213,10 +213,10 @@ logf_exit:
 #define C1  0.693359375 /*355.0/512.0*/
 #define C2 -2.121944400546905827679E-4
 
-float logf(const float x) _FLOAT_FUNC_REENTRANT
+float logf(float x) _FLOAT_FUNC_REENTRANT
 {
-#if     defined(SDCC_mcs51) && defined(SDCC_MODEL_SMALL) \
-    && !defined(SDCC_NOOVERLAY)
+#if     defined(__SDCC_mcs51) && defined(__SDCC_MODEL_SMALL) \
+    && !defined(__SDCC_NOOVERLAY)
     volatile
 #endif
     float Rz;
