@@ -336,7 +336,7 @@ _divulong (unsigned long x, unsigned long y)
 {
   unsigned long reste = 0L;
   unsigned char count = 32;
-  BOOL c;
+  unsigned char c;
 
   do
   {

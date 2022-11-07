@@ -1,0 +1,56 @@
+Index: src/mcs51/gen.c
+===================================================================
+--- src/mcs51/gen.c	(revision 7100)
++++ src/mcs51/gen.c	(working copy)
+@@ -3637,8 +3637,11 @@
+       rsavebits = bitVectIntersect (bitVectCopy (mcs51_allBitregs ()), sym->regsUsed);
+       if (IFFUNC_HASFCALL (sym->type) || !bitVectIsZero (rsavebits))
+         {
+-          emitpush ("bits");
+-          BitBankUsed = 1;
++          if(!inExcludeList("bits"))
++            {
++              emitpush ("bits");
++              BitBankUsed = 1;
++            }
+         }
+       freeBitVect (rsavebits);
+ 
+@@ -4246,7 +4249,10 @@
+ 
+       rsavebits = bitVectIntersect (bitVectCopy (mcs51_allBitregs ()), sym->regsUsed);
+       if (IFFUNC_HASFCALL (sym->type) || !bitVectIsZero (rsavebits))
+-        emitpop ("bits");
++        {
++          if (!inExcludeList("bits"))
++            emitpop ("bits");
++        }
+       freeBitVect (rsavebits);
+ 
+       /* if debug then send end of function */
+Index: device/lib/_divulong.c
+===================================================================
+--- device/lib/_divulong.c	(revision 7100)
++++ device/lib/_divulong.c	(working copy)
+@@ -336,7 +336,7 @@
+ {
+   unsigned long reste = 0L;
+   unsigned char count = 32;
+-  BOOL c;
++  unsigned char c;
+ 
+   do
+   {
+Index: device/lib/_divuint.c
+===================================================================
+--- device/lib/_divuint.c	(revision 7100)
++++ device/lib/_divuint.c	(working copy)
+@@ -156,7 +156,7 @@
+ {
+   unsigned int reste = 0;
+   unsigned char count = 16;
+-  BOOL c;
++  unsigned char c;
+ 
+   do
+   {

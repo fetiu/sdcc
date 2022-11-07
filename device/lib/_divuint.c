@@ -156,7 +156,7 @@ _divuint (unsigned int x, unsigned int y)
 {
   unsigned int reste = 0;
   unsigned char count = 16;
-  BOOL c;
+  unsigned char c;
 
   do
   {
