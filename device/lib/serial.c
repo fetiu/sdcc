@@ -36,10 +36,10 @@ static unsigned char __xdata stx_index_in, srx_index_in, stx_index_out, srx_inde
 static unsigned char __xdata stx_buffer[0x100];
 static unsigned char __xdata srx_buffer[0x100];
 
-static __bit work_flag_byte_arrived;
-static __bit work_flag_buffer_transfered;
-static __bit tx_serial_buffer_empty;
-static __bit rx_serial_buffer_empty;
+static char work_flag_byte_arrived;
+static char work_flag_buffer_transfered;
+static char tx_serial_buffer_empty;
+static char rx_serial_buffer_empty;
 
 
 void serial_init(void)
